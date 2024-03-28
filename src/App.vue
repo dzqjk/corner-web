@@ -13,10 +13,8 @@
 
 <style scoped lang="scss">
 .container {
-  height: 90rem;
-
   .top {
-    height: 3%;
+    height: 5%;
   }
 
   .content {
@@ -24,7 +22,7 @@
   }
 
   .footer {
-    height: 2%;
+    height: 5%;
   }
 }
 </style>

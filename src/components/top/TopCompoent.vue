@@ -72,17 +72,18 @@ const goView = (path: string) => {
   justify-content: space-between;
   align-items: center;
   background-color: #1e1e1e;
+  padding: 8px 0;
 
   .left {
     ul {
       display: flex;
       align-items: center;
       color: #cccccc;
-      font-size: 1.2rem;
+      font-size: 14px;
 
       .logo {
-        margin-left: 1rem;
-        margin-right: 0.5rem;
+        margin-left: 16px;
+        margin-right: 10px;
       }
 
       .menu {
@@ -91,14 +92,14 @@ const goView = (path: string) => {
         &.home {
           border-right: 1px #cccccc solid;
           margin: 0;
-          padding: 0 1.2rem;
+          padding: 0 15px;
         }
 
         &.active {
           color: white;
         }
 
-        margin: 0 1.2rem;
+        margin: 0 13px;
       }
 
       .menu:hover {
@@ -109,12 +110,12 @@ const goView = (path: string) => {
 
   .right {
     :deep(.el-dropdown) {
-      margin-right: 2rem;
+      margin-right: 20px;
       color: #7f7f7f;
     }
 
     .el-dropdown-link {
-      font-size: 1.2rem;
+      font-size: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;

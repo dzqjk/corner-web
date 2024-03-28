@@ -24,21 +24,21 @@
   align-items: center;
   color: rgba(255, 255, 255, 0.5);
   background-color: #1e1e1e;
-  font-size: 1rem;
-  padding: 0.8rem 2.5rem;
+  font-size: 13px;
+  padding: 10px 30px;
 
   .left {
     display: flex;
     align-items: center;
 
     span {
-      margin: 0 0.3rem;
+      margin: 0 8px;
     }
   }
 
   .right {
     span {
-      margin: 0 0.3rem;
+      margin: 0 8px;
       cursor: pointer;
     }
   }
