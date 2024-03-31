@@ -13,6 +13,8 @@
 
 <style scoped lang="scss">
 .container {
+  height: 100%;
+
   .top {
     height: 5%;
   }

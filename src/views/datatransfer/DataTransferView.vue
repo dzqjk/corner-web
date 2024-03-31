@@ -1,336 +1,44 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import type { FormInstance } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
 
-// 保存表单数据
-let conditionRef = ref<FormInstance>()
-let conditionData = reactive<any>({
-  taskStatus: '-1', // -1表示所有任务状态 0表示已提交 1表示未提交
-  runStatus: '-1', // -1表示所有运行状态 0表示已运行 1表示运行失败 2表示未运行
-  sinkType: '-1', // -1表示所有数据去向 0表示MySql 1表示Hive
-  filterFlag: '0', // 0 表示任务名称 1 表示来源信息 2表示去向信息
-  filterVal: '' // 与filterFlag对应input的值
-})
-// 存储分页信息
-let pageNo = ref<number>(1)
-let pageSize = ref<number>(25)
-let total = ref<number>(300)
+let $route = useRoute()
+let $router = useRouter()
 
-// 重置条件
-const restCondition = () => {
-  conditionRef.value?.resetFields()
-  Object.assign(conditionData, {
-    taskStatus: '-1', // -1表示所有任务状态 0表示已提交 1表示未提交
-    runStatus: '-1', // -1表示所有运行状态 0表示已运行 1表示运行失败 2表示未运行
-    sinkType: '-1', // -1表示所有数据去向 0表示MySql 1表示Hive
-    filterFlag: '0', // 0 表示任务名称 1 表示来源信息 2表示去向信息
-    filterVal: '' // 与filterFlag对应input的值
-  })
+interface Tree {
+  label: string
+  nums: number
+  children?: Tree[]
 }
 
-const tableData = [
+const data: Tree[] = [
   {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
+    label: 'ClickHouse',
+    nums: 50,
+    children: [
+      {
+        label: 'ck-01',
+        nums: 30
+      },
+      {
+        label: 'ck-02',
+        nums: 20
+      }
+    ]
   },
   {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
+    label: 'MySql',
+    nums: 30
   },
   {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01_portal_tmp_test_01_portal_tmp_test_01_',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
-  },
-  {
-    taskName: 'portal_tmp_test_01',
-    taskStatus: '已提交',
-    runStatus: '运行成功',
-    sourceType: 'MySql',
-    sourceInfo: 'test.test-01',
-    sinkType: 'Hive',
-    sinkInfo: 'portal.tmp_test_01',
-    ownerName: '张三',
-    updateTime: '2024-03-28 22:10:01',
-    createTime: '2024-03-28 22:09:30'
+    label: 'StarRocks',
+    nums: 30
   }
 ]
+
+// 点击新建任务按钮
+const goView = () => {
+  $router.push({ path: '/transfer/taskDetail', query: { type: 'add' } })
+}
 </script>
 
 <template>
@@ -357,193 +65,23 @@ const tableData = [
         <span>数据传输</span>
       </div>
       <div class="option">
-        <button class="create-job">新建任务</button>
+        <button @click="goView()" class="create-job">新建任务</button>
       </div>
       <!-- 菜单 -->
-      <el-menu default-active="1">
-        <el-menu-item class="allSource" index="1"> 全部数据来源(1484)</el-menu-item>
-        <el-sub-menu index="2">
-          <template #title>
-            <span>ClickHouse(2)</span>
+      <div class="menu">
+        <div class="allSource curSource">全部数据源(25)</div>
+        <el-tree :data="data">
+          <template #default="{ node, data }">
+            <span class="custom-tree-node">
+              <span>{{ node.label }}({{ data.nums }})</span>
+            </span>
           </template>
-          <el-menu-item index="2-1">item one</el-menu-item>
-          <el-menu-item index="2-2">item two</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="3">
-          <template #title>
-            <span>MySql(20)</span>
-          </template>
-          <el-menu-item index="3-1">item one</el-menu-item>
-          <el-menu-item index="3-2">item two</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="4">
-          <template #title>
-            <span>Hive(11)</span>
-          </template>
-          <el-menu-item index="4-1">item one</el-menu-item>
-          <el-menu-item index="4-2">item two</el-menu-item>
-        </el-sub-menu>
-      </el-menu>
+        </el-tree>
+      </div>
     </div>
     <!-- 右侧内容区 -->
     <div class="right">
-      <el-tabs class="content-card" type="card">
-        <el-tab-pane label="任务管理">
-          <div class="task-manager">
-            <div class="top">
-              <el-form inline size="small" ref="conditionRef" :model="conditionData">
-                <el-form-item label="任务状态:" prop="taskStatus">
-                  <el-select
-                    size="small"
-                    v-model="conditionData.taskStatus"
-                    placeholder="选择任务状态"
-                  >
-                    <el-option label="全部" value="-1" />
-                    <el-option label="已提交" value="0" />
-                    <el-option label="未提交" value="1" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="运行状态:" prop="runStatus">
-                  <el-select size="small" v-model="conditionData.runStatus">
-                    <el-option label="全部" value="-1" />
-                    <el-option label="运行成功" value="0" />
-                    <el-option label="运行失败" value="1" />
-                    <el-option label="未运行" value="2" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="数据去向类型:" prop="sinkType">
-                  <el-select size="small" v-model="conditionData.sinkType">
-                    <el-option label="全部" value="-1" />
-                    <el-option label="MySql" value="0" />
-                    <el-option label="Hive" value="1" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item>
-                  <el-button @click="restCondition" link type="primary" size="small"
-                    >重置
-                  </el-button>
-                </el-form-item>
-                <el-form-item style="margin-right: 0">
-                  <div class="right">
-                    <el-input
-                      v-model="conditionData.filterVal"
-                      :prefix-icon="Search"
-                      style="width: 400px"
-                      :placeholder="
-                        conditionData.filterFlag == 0
-                          ? '请输入任务名称'
-                          : conditionData.filterFlag == 1
-                            ? '请输入来源信息'
-                            : '请输入去向信息'
-                      "
-                    >
-                      <template #prepend>
-                        <el-select v-model="conditionData.filterFlag" style="width: 90px">
-                          <el-option label="任务名称" value="0" />
-                          <el-option label="来源信息" value="1" />
-                          <el-option label="去向信息" value="2" />
-                        </el-select>
-                      </template>
-                    </el-input>
-                  </div>
-                </el-form-item>
-              </el-form>
-            </div>
-            <div class="content">
-              <el-table
-                :data="tableData"
-                style="width: 100%"
-                max-height="900"
-                table-layout="auto"
-                row-class-name="row"
-              >
-                <el-table-column
-                  fixed
-                  prop="taskName"
-                  label="任务名称"
-                  width="200"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="taskStatus"
-                  label="任务状态"
-                  width="100"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="runStatus"
-                  label="运行状态"
-                  width="100"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="sourceType"
-                  label="数据来源类型"
-                  width="150"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="sourceInfo"
-                  label="来源信息"
-                  width="200"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="sinkType"
-                  label="数据去向类型"
-                  width="150"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="sinkInfo"
-                  label="去向信息"
-                  width="200"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="ownerName"
-                  label="负责人"
-                  width="100"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="updateTime"
-                  label="最近修改时间"
-                  width="200"
-                  show-overflow-tooltip
-                />
-                <el-table-column
-                  prop="createTime"
-                  label="创建时间"
-                  width="200"
-                  show-overflow-tooltip
-                />
-                <el-table-column prop="createTime" label="测试" width="200" show-overflow-tooltip />
-                <el-table-column fixed="right" label="操作" width="200" show-overflow-tooltip>
-                  <template #default>
-                    <el-button link type="primary" size="small">编辑</el-button>
-                    <el-button link type="primary" size="small">提交</el-button>
-                    <el-button link type="primary" size="small">运行</el-button>
-                    <el-button link type="danger" size="small">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-            <div class="pagination">
-              <el-pagination
-                :total="total"
-                :page-sizes="[25, 50, 100]"
-                v-model:current-page="pageNo"
-                v-model:page-size="pageSize"
-                :small="true"
-                layout="total,prev, pager, next, sizes,jumper"
-                background
-              />
-            </div>
-          </div>
-        </el-tab-pane>
-        <!--        <el-tab-pane label="线上任务">线上任务</el-tab-pane>-->
-      </el-tabs>
+      <RouterView />
     </div>
   </div>
 </template>
@@ -554,7 +92,7 @@ const tableData = [
   display: flex;
 
   .left {
-    width: 13%;
+    width: 12%;
     border-right: 0.5px solid #cccccc;
 
     .logo {
@@ -564,7 +102,7 @@ const tableData = [
       align-items: center;
       justify-content: left;
       border-bottom: 1px solid #cccccc;
-      padding-left: 15px;
+      padding-left: 30px;
 
       span {
         font-size: 14px;
@@ -578,7 +116,7 @@ const tableData = [
       align-items: center;
       justify-content: left;
       border-bottom: 1px solid #cccccc;
-      padding-left: 15px;
+      padding-left: 30px;
 
       .create-job {
         width: 80px;
@@ -588,71 +126,35 @@ const tableData = [
         cursor: pointer;
         height: 30px;
       }
+
+      .create-job:hover {
+        color: #cccccc;
+      }
     }
 
-    :deep(.el-sub-menu__title) {
-      height: 30px;
-      padding: 10px 14px;
-      font-size: 12px;
-    }
-
-    :deep(.el-menu-item) {
-      height: 30px;
-      padding: 5px 18px;
-      font-size: 12px;
+    .menu {
+      padding-left: 20px;
     }
 
     .allSource {
-      height: 30px;
-      padding: 10px 8px;
-      font-size: 12px;
+      padding-left: 10px;
+      padding-top: 13px;
+      padding-bottom: 13px;
+      font-size: 13px;
+      cursor: pointer;
+
+      &.curSource {
+        color: dodgerblue;
+      }
+    }
+
+    .allSource:hover {
+      color: dodgerblue;
     }
   }
 
   .right {
-    width: 87%;
-    padding: 15px 20px;
-
-    :deep(.el-tabs__header) {
-      margin-bottom: 0;
-    }
-
-    .content-card {
-      .task-manager {
-        .top {
-          padding-left: 12px;
-          height: 5%;
-
-          :deep(.el-select__wrapper) {
-            width: 90px;
-          }
-
-          :deep(.el-form-item) {
-            margin-bottom: 0;
-          }
-        }
-
-        .content {
-          height: 90%;
-
-          .row {
-            color: #1e1e1e;
-          }
-
-          :deep(.el-button) {
-            margin-left: 0;
-            margin-right: 5px;
-          }
-        }
-
-        .pagination {
-          height: 5%;
-          margin-top: 10px;
-          display: flex;
-          justify-content: right;
-        }
-      }
-    }
+    width: 88%;
   }
 }
 </style>

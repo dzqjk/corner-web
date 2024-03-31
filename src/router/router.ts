@@ -15,7 +15,23 @@ const router = createRouter({
       component: () => import('@/views/datatransfer/DataTransferView.vue'),
       meta: {
         title: '数据传输'
-      }
+      },
+      children: [
+        {
+          path: '/transfer/taskList',
+          component: () => import('@/views/datatransfer/task/TaskListView.vue'),
+          meta: {
+            title: '数据传输-任务管理'
+          }
+        },
+        {
+          path: '/transfer/taskDetail',
+          component: () => import('@/views/datatransfer/task/TaskDetailView.vue'),
+          meta: {
+            title: '数据传输-新建任务'
+          }
+        }
+      ]
     },
     {
       path: '/source',

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ArrowDown } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 // router对象
 let $router = useRouter()
+let $route = useRoute()
 
 // 点击菜单跳转页面
 const goView = (path: string) => {
@@ -40,11 +41,44 @@ const goView = (path: string) => {
           </svg>
         </li>
         <li>CornerData</li>
-        <li class="menu home active" @click="goView('/home')">首页</li>
-        <li class="menu" @click="goView('/transfer')">数据传输</li>
-        <li class="menu" @click="goView('/source')">数据源管理</li>
-        <li class="menu" @click="goView('/analysis')">自助分析</li>
-        <li class="menu" @click="goView('/assetMap')">数据资产地图</li>
+        <li
+          class="menu home"
+          :class="{ active: $route.path.split('\/')[1] == 'home' }"
+          @click="goView('/home')"
+        >
+          首页
+        </li>
+        <li>
+          <el-divider direction="vertical" />
+        </li>
+        <li
+          class="menu"
+          :class="{ active: $route.path.split('\/')[1] == 'transfer' }"
+          @click="goView('/transfer/taskList')"
+        >
+          数据传输
+        </li>
+        <li
+          class="menu"
+          :class="{ active: $route.path.split('\/')[1] == 'source' }"
+          @click="goView('/source')"
+        >
+          数据源管理
+        </li>
+        <li
+          class="menu"
+          :class="{ active: $route.path.split('\/')[1] == 'analysis' }"
+          @click="goView('/analysis')"
+        >
+          自助分析
+        </li>
+        <li
+          class="menu"
+          :class="{ active: $route.path.split('\/')[1] == 'assetMap' }"
+          @click="goView('/assetMap')"
+        >
+          数据资产地图
+        </li>
       </ul>
     </div>
     <!-- 右侧用户信息 -->
@@ -90,7 +124,6 @@ const goView = (path: string) => {
         cursor: pointer;
 
         &.home {
-          border-right: 1px #cccccc solid;
           margin: 0;
           padding: 0 15px;
         }
