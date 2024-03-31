@@ -61,7 +61,7 @@ const goView = (path: string) => {
         <li
           class="menu"
           :class="{ active: $route.path.split('\/')[1] == 'source' }"
-          @click="goView('/source')"
+          @click="goView('/source/sourceList')"
         >
           数据源管理
         </li>

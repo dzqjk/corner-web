@@ -19,16 +19,16 @@ const router = createRouter({
       children: [
         {
           path: '/transfer/taskList',
-          component: () => import('@/views/datatransfer/task/TaskListView.vue'),
+          component: () => import('@/views/datatransfer/all/TaskListView.vue'),
           meta: {
-            title: '数据传输-任务管理'
+            title: '数据传输'
           }
         },
         {
           path: '/transfer/taskDetail',
-          component: () => import('@/views/datatransfer/task/TaskDetailView.vue'),
+          component: () => import('@/views/datatransfer/detail/TaskDetailView.vue'),
           meta: {
-            title: '数据传输-新建任务'
+            title: '数据传输'
           }
         }
       ]
@@ -38,7 +38,23 @@ const router = createRouter({
       component: () => import('@/views/datasource/DataSourceView.vue'),
       meta: {
         title: '数据源管理'
-      }
+      },
+      children: [
+        {
+          path: '/source/sourceList',
+          component: () => import('@/views/datasource/all/SourceListView.vue'),
+          meta: {
+            title: '数据源管理'
+          }
+        },
+        {
+          path: '/source/sourceDetail',
+          component: () => import('@/views/datasource/detail/SourceDetailView.vue'),
+          meta: {
+            title: '数据源管理'
+          }
+        }
+      ]
     },
     {
       path: '/analysis',
