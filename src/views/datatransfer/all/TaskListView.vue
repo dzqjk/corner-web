@@ -476,6 +476,7 @@ const goDetail = (row: any, type: string) => {
 
 <style scoped lang="scss">
 .content-card {
+  min-height: 800px;
   padding: 15px 20px;
 
   .task-manager {

@@ -148,13 +148,7 @@
     </div>
     <!-- 右边内容区 -->
     <div class="right">
-      <div class="top">
-        <span>数据源管理</span>
-        <el-button type="primary" size="small">添加数据源</el-button>
-      </div>
-      <div class="content">
-        <RouterView />
-      </div>
+      <RouterView />
     </div>
   </div>
 </template>
@@ -235,15 +229,6 @@
   .right {
     width: 88%;
     padding: 0 25px 20px 25px;
-
-    .top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 50px;
-      border-bottom: 1px solid #cccccc;
-      font-size: 14px;
-    }
   }
 }
 </style>

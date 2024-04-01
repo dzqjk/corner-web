@@ -212,7 +212,7 @@ const cancelEdit = () => {
 
 <style scoped lang="scss">
 .addTask {
-  height: 100%;
+  min-height: 800px;
 
   .top {
     display: flex;
