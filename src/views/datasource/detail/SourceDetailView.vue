@@ -56,8 +56,9 @@ const goDetail = (type: string) => {
   <div class="source-detail">
     <div class="head">
       <span>
-        {{ $route.query.type == 'add' ? '添加' : $route.query.type == 'edit' ? '编辑' : '查看' }}
-        数据源
+        {{
+          $route.query.type == 'add' ? '添加' : $route.query.type == 'edit' ? '编辑' : '查看'
+        }}数据源
       </span>
       <div>
         <el-button
