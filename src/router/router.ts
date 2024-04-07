@@ -64,6 +64,13 @@ const router = createRouter({
       }
     },
     {
+      path: '/userInfo',
+      component: () => import('@/views/user/UserInfo.vue'),
+      meta: {
+        title: '个人信息'
+      }
+    },
+    {
       path: '/',
       redirect: '/home'
     }

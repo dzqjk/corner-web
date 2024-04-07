@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import { ArrowDown } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
+import useUserStore from '@/stores/modules/user'
+import { ElMessage } from 'element-plus'
 
 // router对象
 let $router = useRouter()
 let $route = useRoute()
 
+let userStore = useUserStore()
+
 // 点击菜单跳转页面
 const goView = (path: string) => {
   $router.push({ path: path })
+}
+
+// 点击安全退出
+const loginOut = () => {
+  userStore.loginOut()
+  $router.push({ path: '/home' })
+  ElMessage({
+    type: 'error',
+    showClose: true,
+    center: true,
+    message: '退出登录'
+  })
 }
 </script>
 
@@ -90,8 +106,8 @@ const goView = (path: string) => {
         ></span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item>个人信息</el-dropdown-item>
-            <el-dropdown-item>安全退出</el-dropdown-item>
+            <el-dropdown-item @click="goView('/userInfo')">个人信息</el-dropdown-item>
+            <el-dropdown-item @click="loginOut">安全退出</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>

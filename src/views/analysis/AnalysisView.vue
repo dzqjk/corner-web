@@ -6,6 +6,6 @@
 
 <style scoped lang="scss">
 .analysis {
-  height: 100%;
+  min-height: 910px;
 }
 </style>

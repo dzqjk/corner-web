@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { Tickets } from '@element-plus/icons-vue'
+import useUserStore from '@/stores/modules/user'
+
+let userStore = useUserStore()
+// 点击注册或登录按钮回调
+const showLogin = () => {
+  // 设置用户仓库是否显示登录注册页面
+  userStore.visible = true
+}
 </script>
 
 <template>
@@ -19,9 +27,9 @@ import { Tickets } from '@element-plus/icons-vue'
         <el-avatar src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
         <span>吴雨涛</span>
         <span>
-          <el-link :underline="false" type="primary">注册</el-link>
+          <el-link @click="showLogin" :underline="false" type="primary">注册</el-link>
           <el-divider direction="vertical" />
-          <el-link :underline="false" type="primary">登录</el-link>
+          <el-link @click="showLogin" :underline="false" type="primary">登录</el-link>
         </span>
       </div>
       <div class="manual">
@@ -90,6 +98,7 @@ import { Tickets } from '@element-plus/icons-vue'
         </ul>
       </div>
     </div>
+    <Login />
   </div>
 </template>
 
@@ -142,11 +151,16 @@ import { Tickets } from '@element-plus/icons-vue'
           justify-content: left;
           align-items: center;
           margin-bottom: 15px;
+          cursor: pointer;
 
           span {
             font-size: 13px;
             margin-left: 8px;
           }
+        }
+
+        li:hover {
+          color: #79bbff;
         }
       }
     }
