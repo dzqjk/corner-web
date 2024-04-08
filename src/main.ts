@@ -20,7 +20,7 @@ import pinia from '@/stores/index'
 //@ts-ignore
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 // 引入路由鉴权
-import '@/permissions'
+import '@/router/permissions'
 
 const app = createApp(App)
 
