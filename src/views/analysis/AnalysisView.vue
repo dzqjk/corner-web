@@ -2,20 +2,18 @@
 // 引入ace-builds配置文件
 import '@/ace-config'
 import { VAceEditor } from 'vue3-ace-editor/index'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading,SuccessFilled } from '@element-plus/icons-vue'
 // 引入sql-formatter
 import { formatDialect, hive, spark, mysql } from 'sql-formatter'
 
 import { reactive, ref } from 'vue'
 
-// 标记sql是否正在运行
-let isRunning = ref<boolean>(false)
-
 // 接收提交查询是所需的参数
 let queryData = reactive({
   sql: '', // sql语句
   engine: 'hive', // 引擎
-  database: '' // 数据库
+  database: '', // 数据库
+  runStatus: 2, // 运行状态：0表示未运行，1表示正在运行，2表示运行成功，3表示运行失败
 })
 
 // 接收ace-builds配置
@@ -36,9 +34,9 @@ const ace_options = {
   // 设置缩进宽度
   tabSize: 4,
   // 设置最大行数
-  maxLines: 35,
+  maxLines: 30,
   // 设置最小行数
-  minLines: 25,
+  minLines: 20,
   // 是否使用空格代替制表符进行缩进
   useSoftTabs: true,
   // 是否启用自动缩进
@@ -71,7 +69,7 @@ const format_options = reactive({
 // 提交查询
 const runQuery = () => {
   // 修改标记sql是否正在运行
-  isRunning.value = true
+  queryData.runStatus = 1
 }
 
 // 格式化sql
@@ -379,22 +377,22 @@ const options = [
         <div class='menu'>
           <el-row>
             <el-col :span='18' class='icon-group'>
-              <el-tooltip v-if='!isRunning' content='执行SQL' placement='bottom'>
+              <el-tooltip v-if='queryData.runStatus != 1' content='执行SQL' placement='bottom'>
                 <svg
-                  class='my-icon'
-                  height='15'
+                  height='14'
                   p-id='3528'
                   t='1712587577358'
                   version='1.1'
                   viewBox='0 0 1024 1024'
-                  width='15'
+                  width='14'
                   xmlns='http://www.w3.org/2000/svg'
                   @click='runQuery'
+                  style='margin-right: 8px;cursor: pointer'
                 >
                   <path d='M912 512l-800 448V64z' fill='#0590DF' p-id='3529'></path>
                 </svg>
               </el-tooltip>
-              <el-tooltip v-if='isRunning' content='取消执行' placement='bottom'>
+              <el-tooltip v-if='queryData.runStatus == 1' content='取消执行' placement='bottom'>
                 <el-icon class='is-loading my-icon'>
                   <Loading />
                 </el-icon>
@@ -456,7 +454,31 @@ const options = [
           theme='sqlserver'
         />
       </div>
-      <div class='bottom'></div>
+      <div class='bottom'>
+        <div class='running-status' v-if='queryData.runStatus != 0'>
+          <span  style='height: 14px;font-size: 14px'>
+            <el-icon  color='#67C23A'>
+              <SuccessFilled />
+            </el-icon>
+          </span>
+          <span style='height: 14px'>运行490：成功 (4.9) s，运行时间：2024-04-09 17:14:28</span>
+        </div>
+        <div class='result-area'>
+          <el-tabs type="border-card">
+            <el-tab-pane label="运行结果">
+              <el-tabs tab-position="left" stretch>
+                <el-tab-pane label="运行信息">
+                  运行信息
+                </el-tab-pane>
+                <el-tab-pane label="SQL">SQL</el-tab-pane>
+                <el-tab-pane label="日志">日志</el-tab-pane>
+                <el-tab-pane label="预览结果">预览结果</el-tab-pane>
+              </el-tabs>
+            </el-tab-pane>
+            <el-tab-pane label="运行历史">运行历史</el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
     </div>
     <div class='right'>数据源信息</div>
   </div>
@@ -508,7 +530,6 @@ const options = [
     }
 
     .content {
-      height: 70%;
 
       .query-editor {
         margin-top: 5px;
@@ -530,6 +551,26 @@ const options = [
           background: none;
           border-top: 1px solid #e0e3e9;
           border-bottom: 1px solid #e0e3e9;
+        }
+      }
+    }
+
+    .bottom {
+      .running-status {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        color: #666;
+        background-color: #fff;
+        margin: 3px 5px
+      }
+      .result-area {
+        :deep(.el-tabs__content) {
+          padding-left: 0;
+        }
+
+        :deep(.el-tabs__item) {
+          justify-content: left;
         }
       }
     }
