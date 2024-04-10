@@ -2,21 +2,25 @@
 // 引入ace-builds配置文件
 import '@/ace-config'
 import { VAceEditor } from 'vue3-ace-editor/index'
-import { Loading,SuccessFilled } from '@element-plus/icons-vue'
+import { Loading, SuccessFilled, Refresh, Search } from '@element-plus/icons-vue'
 // 引入sql-formatter
 import { formatDialect, hive, spark, mysql } from 'sql-formatter'
+import { ElMessage } from 'element-plus'
 
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted,watch} from 'vue'
 
 // 接收提交查询是所需的参数
 let queryData = reactive({
   sql: '', // sql语句
   engine: 'hive', // 引擎
   database: '', // 数据库
-  runStatus: 2, // 运行状态：0表示未运行，1表示正在运行，2表示运行成功，3表示运行失败
+  runStatus: 2 // 运行状态：0表示未运行，1表示正在运行，2表示运行成功，3表示运行失败
 })
 
-// 接收ace-builds配置
+let viewEditor = ref<any>()
+let queryEditor = ref<any>()
+
+// sql编辑器配置
 const ace_options = {
   selectionStyle: 'line',
   // 开启后台语法检查
@@ -36,7 +40,7 @@ const ace_options = {
   // 设置最大行数
   maxLines: 30,
   // 设置最小行数
-  minLines: 20,
+  minLines: 30,
   // 是否使用空格代替制表符进行缩进
   useSoftTabs: true,
   // 是否启用自动缩进
@@ -63,7 +67,7 @@ const format_options = reactive({
   tabWidth: 4, // 缩进宽度
   keywordCase: 'lower', // 大写或小写关键字
   linesBetweenQueries: 2, // 查询之间空行数
-  denseOperators: false, // 操作符是否密集
+  denseOperators: false // 操作符是否密集
 })
 
 // 提交查询
@@ -79,6 +83,44 @@ const formatSql = () => {
   const format_result = formatDialect(queryData.sql, format_options)
   // 输出格式化后的sql
   queryData.sql = format_result
+}
+
+// 点击复制结果
+const copyResult = () => {
+  const tableText = '\'' + tableData.map(row => {
+    return (Object.values(row)).join('\',\'') // 将每一行的数据转换为文本格式
+  }).join('\'\n\'') + '\'' // 将整个表格数据转换为文本格式
+
+  navigator.clipboard.writeText(tableText) // 将数据写入剪贴板
+    .then(() => {
+      // 成功复制到剪贴板时的反馈
+      ElMessage({
+        message: '复制成功',
+        type: 'success'
+      })
+    })
+    .catch(err => {
+      // 复制失败时的反馈
+      ElMessage.error('复制失败')
+      console.error('无法复制表格数据', err)
+    })
+}
+
+// 点击复制语句
+const copySQL = (row: any) => {
+  navigator.clipboard.writeText(row.address) // 将数据写入剪贴板
+    .then(() => {
+      // 成功复制到剪贴板时的反馈
+      ElMessage({
+        message: '复制成功',
+        type: 'success'
+      })
+    })
+    .catch(err => {
+      // 复制失败时的反馈
+      ElMessage.error('复制失败')
+      console.error('无法复制表格数据', err)
+    })
 }
 
 const options = [
@@ -349,6 +391,60 @@ const options = [
     ]
   }
 ]
+const tableData = [
+  {
+    date: '2016-05-03',
+    name: 'Tom',
+    address: 'No. 189, Grove St, Los Angeles'
+  },
+  {
+    date: '2016-05-02',
+    name: 'Tom',
+    address: 'No. 189, Grove St, Los Angeles'
+  },
+  {
+    date: '2016-05-04',
+    name: 'Tom',
+    address: 'No. 189, Grove St, Los Angeles'
+  },
+  {
+    date: '2016-05-01',
+    name: 'Tom',
+    address: 'No. 189, Grove St, Los Angeles'
+  }
+]
+
+const value = ref()
+
+const props = {
+  label: 'label',
+  children: 'children',
+  isLeaf: 'isLeaf'
+}
+
+let id = 0
+
+const load = (node, resolve) => {
+  if (node.isLeaf) return resolve([])
+
+  setTimeout(() => {
+    resolve([
+      {
+        value: ++id,
+        label: `lazy load node${id}`
+      },
+      {
+        value: ++id,
+        label: `lazy load node${id}`,
+        isLeaf: true
+      }
+    ])
+  }, 400)
+}
+
+// 页面挂载时执行的动作
+onMounted(() => {
+})
 </script>
 
 <template>
@@ -392,8 +488,8 @@ const options = [
                   <path d='M912 512l-800 448V64z' fill='#0590DF' p-id='3529'></path>
                 </svg>
               </el-tooltip>
-              <el-tooltip v-if='queryData.runStatus == 1' content='取消执行' placement='bottom'>
-                <el-icon class='is-loading my-icon'>
+              <el-tooltip v-if='queryData.runStatus == 1' content='正在执行' placement='bottom'>
+                <el-icon class='is-loading my-icon' style='cursor: auto'>
                   <Loading />
                 </el-icon>
               </el-tooltip>
@@ -446,7 +542,7 @@ const options = [
       </div>
       <div class='content'>
         <VAceEditor
-          ref='aceRef'
+          ref='queryEditor'
           v-model:value='queryData.sql'
           :options='ace_options'
           class='query-editor'
@@ -456,42 +552,138 @@ const options = [
       </div>
       <div class='bottom'>
         <div class='running-status' v-if='queryData.runStatus != 0'>
-          <span  style='height: 14px;font-size: 14px'>
-            <el-icon  color='#67C23A'>
+          <span style='height: 14px;font-size: 14px;margin-right: 5px'>
+            <el-icon v-if='queryData.runStatus = 2' color='#67C23A'>
               <SuccessFilled />
             </el-icon>
           </span>
           <span style='height: 14px'>运行490：成功 (4.9) s，运行时间：2024-04-09 17:14:28</span>
         </div>
         <div class='result-area'>
-          <el-tabs type="border-card">
-            <el-tab-pane label="运行结果">
-              <el-tabs tab-position="left" stretch>
-                <el-tab-pane label="运行信息">
-                  运行信息
+          <el-tabs type='border-card'>
+            <el-tab-pane class='running-result' label='运行结果'>
+              <el-tabs tab-position='left' stretch>
+                <el-tab-pane label='运行信息' class='running_info'>
+                  <p>开始时间：2024-04-09 17:14:28</p>
+                  <p>运行时长：47.2s</p>
+                  <p>执行引擎：Hive</p>
+                  <p>执行结果：成功</p>
                 </el-tab-pane>
-                <el-tab-pane label="SQL">SQL</el-tab-pane>
-                <el-tab-pane label="日志">日志</el-tab-pane>
-                <el-tab-pane label="预览结果">预览结果</el-tab-pane>
+                <el-tab-pane label='SQL' class='running_sql'>
+                  <VAceEditor
+                    ref='viewEditor'
+                    v-model:value='queryData.sql'
+                    :options='{
+                      readOnly: true,
+                      showPrintMargin: false,
+                      showGutter: true,
+                      highlightActiveLine: false,
+                      maxLines: 10,
+                      minLines: 10,
+                      fontSize: 14,
+                    }'
+                    class='query-editor'
+                    lang='sqlserver'
+                    theme='sqlserver'
+                  />
+                </el-tab-pane>
+                <el-tab-pane label='日志' class='running_log'>日志</el-tab-pane>
+                <el-tab-pane label='预览结果' class='result_info'>
+                  <div style='line-height: 20px'>
+                    <el-button @click='copyResult' class='operate' type='primary' link>复制结果</el-button>
+                  </div>
+                  <el-table :data='tableData' stripe style='width: 100%' size='small' max-height='200'>
+                    <el-table-column fixed type='index' :index='1' label='#' width='50' />
+                    <el-table-column prop='date' sortable label='Date' width='100' />
+                    <el-table-column prop='name' sortable label='Name' width='100' />
+                    <el-table-column prop='address' sortable label='Address' />
+                  </el-table>
+                </el-tab-pane>
               </el-tabs>
             </el-tab-pane>
-            <el-tab-pane label="运行历史">运行历史</el-tab-pane>
+            <el-tab-pane class='running-history' label='运行历史'>
+              <el-table :show-header='false' :data='tableData' stripe style='width: 100%' size='small' max-height='200'>
+                <el-table-column prop='date' sortable label='Date' width='100' />
+                <el-table-column prop='name' sortable label='Name' width='100' />
+                <el-table-column prop='address' sortable label='Address' />
+                <el-table-column fixed='right' label='选项' width='200'>
+                  <template #default='scope'>
+                    <el-button
+                      link
+                      type='primary'
+                      size='small'
+                      @click.prevent='copySQL(scope.row)'
+                    >
+                      复制语句
+                    </el-button>
+                    <el-button
+                      link
+                      type='primary'
+                      size='small'>
+                      查看日志
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
           </el-tabs>
         </div>
       </div>
     </div>
-    <div class='right'>数据源信息</div>
+    <div class='right'>
+      <el-tabs>
+        <el-tab-pane label='库表信息'>
+          <!-- 联动切换数据源按钮 -->
+          <div style='margin-bottom: 10px'>
+            <el-button link type='primary'>
+              <template #icon>
+                <el-icon>
+                  <Refresh />
+                </el-icon>
+              </template>
+              联动切换数据源
+            </el-button>
+          </div>
+          <!-- 数据源树形选择器 -->
+          <el-tree-select
+            v-model='value'
+            lazy
+            :load='load'
+            :props='props'
+            style='margin-bottom: 10px'
+          />
+        </el-tab-pane>
+        <!-- 选择库 -->
+        <el-input style='margin-bottom: 10px' clearable placeholder='请选择库'>
+          <template #prefix>
+            <svg t='1712739581622' class='icon' viewBox='0 0 1024 1024' version='1.1' xmlns='http://www.w3.org/2000/svg'
+                 p-id='4277' width='16' height='16'>
+              <path
+                d='M522.666667 96l8.533333 0.042667a910.08 910.08 0 0 1 91.562667 5.333333l14.549333 1.706667 15.402667 2.133333 15.125333 2.410667 7.573333 1.322666 14.890667 2.837334c125.205333 25.322667 212.928 79.488 216.256 150.677333l0.106667 4.202667v448c0 73.258667-88.704 129.066667-216.362667 154.88l-14.890667 2.837333-7.573333 1.322667-15.125333 2.389333-15.402667 2.133333c-36.266667 4.650667-74.773333 7.104-114.645333 7.104-39.872 0-78.378667-2.453333-114.645334-7.104l-15.402666-2.133333-15.125334-2.389333c-137.088-23.189333-235.264-79.488-238.72-154.901334L138.666667 714.666667v-448l0.106666-4.202667c3.328-71.189333 91.050667-125.354667 216.256-150.677333l14.890667-2.837334 7.573333-1.322666 15.125334-2.389334 15.402666-2.133333a892.202667 892.202667 0 0 1 97.642667-6.954667L522.666667 96z m145.173333 543.04l-15.125333 2.389333-15.402667 2.133334c-36.266667 4.650667-74.773333 7.104-114.645333 7.104-39.872 0-78.378667-2.453333-114.645334-7.104l-15.402666-2.133334-15.125334-2.389333c-71.488-12.096-132.416-33.194667-174.826666-61.312V714.666667c0 20.949333 24.170667 42.773333 65.066666 61.184l9.749334 4.181333c15.04 6.186667 32 11.925333 50.602666 17.024l12.650667 3.306667c12.864 3.2 26.453333 6.144 40.597333 8.704l14.378667 2.453333 14.741333 2.197333c9.962667 1.386667 20.16 2.602667 30.570667 3.626667l15.765333 1.408 16.064 1.109333 16.362667 0.810667a845.994667 845.994667 0 0 0 66.901333 0l16.362667-0.810667 16.064-1.109333 15.786667-1.408c10.389333-1.024 20.586667-2.24 30.549333-3.626667l14.741333-2.197333 14.378667-2.453333c14.165333-2.56 27.733333-5.482667 40.597333-8.704l12.650667-3.306667c18.602667-5.12 35.562667-10.837333 50.602667-17.024l9.749333-4.181333c39.317333-17.706667 63.189333-38.549333 64.96-58.773334l0.106667-2.410666v-136.96c-42.389333 28.138667-103.317333 49.237333-174.826667 61.333333zM842.666667 364.373333c-40.298667 26.730667-97.28 47.104-164.202667 59.456l-10.666667 1.877334-15.104 2.389333-15.402666 2.133333c-36.266667 4.650667-74.773333 7.104-114.645334 7.104-34.176 0-67.349333-1.792-98.986666-5.248l-15.658667-1.856-15.402667-2.133333-15.125333-2.389333c-71.488-12.096-132.416-33.194667-174.826667-61.312V480c0 20.949333 24.170667 42.773333 65.066667 61.184l9.749333 4.181333c15.04 6.186667 32 11.925333 50.602667 17.024l12.650667 3.306667c12.864 3.2 26.453333 6.144 40.597333 8.704l14.378667 2.453333 14.741333 2.197334c9.962667 1.386667 20.16 2.602667 30.570667 3.626666l15.765333 1.408 16.064 1.109334 16.362667 0.810666a845.994667 845.994667 0 0 0 66.901333 0l16.362667-0.810666 16.064-1.109334 15.786666-1.408c10.389333-1.024 20.586667-2.24 30.549334-3.626666l14.741333-2.197334 14.378667-2.453333c14.165333-2.56 27.733333-5.482667 40.597333-8.704l12.650667-3.306667c18.602667-5.12 35.562667-10.837333 50.602666-17.024l9.749334-4.181333c39.317333-17.706667 63.189333-38.549333 64.96-58.773333l0.106666-2.410667v-115.626667zM522.666667 160l-8.448 0.042667-12.586667 0.213333-12.416 0.405333-16.362667 0.810667-16.064 1.109333-15.786666 1.408c-6.933333 0.682667-13.76 1.450667-20.501334 2.304l-10.026666 1.322667-14.762667 2.197333-14.378667 2.453334c-10.624 1.92-20.906667 4.053333-30.826666 6.336l-9.770667 2.346666-12.650667 3.328c-15.488 4.266667-29.866667 8.96-42.922666 13.973334l-7.68 3.050666-9.749334 4.181334c-40.896 18.410667-65.066667 40.234667-65.066666 61.184 0 20.053333 22.122667 40.874667 59.84 58.773333l5.226666 2.410667 9.749334 4.181333c12.522667 5.162667 26.389333 10.005333 41.450666 14.421333l9.173334 2.602667 12.629333 3.306667c9.642667 2.410667 19.690667 4.650667 30.08 6.72l10.517333 1.984 14.378667 2.453333 14.741333 2.197333c6.634667 0.938667 13.376 1.770667 20.224 2.56l10.346667 1.066667 15.765333 1.408 16.064 1.109333 16.362667 0.810667a845.994667 845.994667 0 0 0 55.872 0.362667l11.029333-0.362667 16.362667-0.810667 16.064-1.109333 15.786667-1.408c6.933333-0.682667 13.76-1.450667 20.501333-2.304l10.026667-1.322667 14.762666-2.197333 14.378667-2.453333c10.624-1.92 20.906667-4.053333 30.826667-6.336l9.770666-2.346667 12.650667-3.328c15.488-4.266667 29.866667-8.96 42.922667-13.973333l7.68-3.050667 9.749333-4.181333c40.896-18.410667 65.066667-40.234667 65.066667-61.184 0-20.053333-22.122667-40.874667-59.84-58.773334l-5.226667-2.410666-9.749333-4.181334a424.469333 424.469333 0 0 0-41.450667-14.421333l-9.173333-2.602667-12.629334-3.306666a623.658667 623.658667 0 0 0-30.08-6.72l-10.517333-1.984-14.378667-2.453334-14.741333-2.197333a765.994667 765.994667 0 0 0-20.224-2.56l-10.346667-1.066667-15.765333-1.408-16.064-1.109333-16.362667-0.810667c-7.317333-0.298667-14.72-0.490667-22.186666-0.597333L522.666667 160z'
+                fill='#1677FF' p-id='4278'></path>
+            </svg>
+          </template>
+        </el-input>
+        <!-- 数据表名称 -->
+        <div class=''>
+          <el-input style='margin-bottom: 10px' clearable placeholder='数据表名称' :prefix-icon='Search' />
+        </div>
+        <!-- 数据表展示 -->
+        <el-table :show-header='false' :data='tableData' style='width: 100%' size='small' max-height='650'>
+          <el-table-column prop='date' sortable label='Date' />
+        </el-table>
+      </el-tabs>
+    </div>
   </div>
 </template>
 
 <style lang='scss' scoped>
 .analysis {
-  min-height: 910px;
 
   display: flex;
 
   .left {
-    width: 80%;
+    width: 85%;
 
     .head {
       .title {
@@ -564,21 +756,80 @@ const options = [
         background-color: #fff;
         margin: 3px 5px
       }
+
       .result-area {
-        :deep(.el-tabs__content) {
-          padding-left: 0;
+        .running-result {
+          min-height: 240px;
+
+          .running_info {
+            padding-left: 5px;
+
+            p {
+              height: 18px;
+              line-height: 18px;
+              color: #666;
+              margin-bottom: 4px;
+              font-size: 12px;
+            }
+          }
+
+          .running_sql {
+            padding-left: 5px;
+
+            .query-editor {
+              :deep(.ace_gutter-layer) {
+                background-color: white;
+                color: #79bbff;
+              }
+
+              :deep(.ace_gutter-active-line) {
+                background: none;
+              }
+
+              // 去掉鼠标选中行的背景色
+              :deep(.ace_active-line) {
+                background: none;
+              }
+            }
+          }
+
+          .running_log {
+            padding-left: 5px;
+          }
+
+          .result_info {
+            padding-left: 5px;
+
+            .operate {
+              font-size: 12px;
+            }
+          }
+
+          :deep(.el-tabs__content) {
+            padding-left: 0;
+          }
+
+          :deep(.el-tabs__item) {
+            justify-content: left;
+            padding: 0 15px 0 0;
+          }
         }
 
-        :deep(.el-tabs__item) {
-          justify-content: left;
+        .running-history {
+          min-height: 240px;
         }
       }
     }
   }
 
   .right {
-    width: 20%;
+    width: 15%;
     border-left: 2px solid #e0e3e9;
+    padding: 0 16px;
+
+    :deep(.el-table__cell,.el-table__row,tbody) {
+      border: none;
+    }
   }
 }
 </style>
