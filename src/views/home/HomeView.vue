@@ -1,8 +1,12 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { Tickets } from '@element-plus/icons-vue'
 import useUserStore from '@/stores/modules/user'
 
 let userStore = useUserStore()
+
+// 默认头像
+const defaultAvatar = 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
+
 // 点击注册或登录按钮回调
 const showLogin = () => {
   // 设置用户仓库是否显示登录注册页面
@@ -24,12 +28,14 @@ const showLogin = () => {
     </div>
     <div class="right">
       <div class="userInfo">
-        <el-avatar src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
-        <span>吴雨涛</span>
-        <span>
-          <el-link @click="showLogin" :underline="false" type="primary">注册</el-link>
+        <el-avatar
+          :src="userStore.userInfo.avatar != '' ? userStore.userInfo.avatar : defaultAvatar"
+        />
+        <span>{{ userStore.userInfo.nickName != '' ? userStore.userInfo.nickName : '游客' }}</span>
+        <span v-if="userStore.userInfo.uuid == ''">
+          <el-link :underline="false" type="primary" @click="showLogin">注册</el-link>
           <el-divider direction="vertical" />
-          <el-link @click="showLogin" :underline="false" type="primary">登录</el-link>
+          <el-link :underline="false" type="primary" @click="showLogin">登录</el-link>
         </span>
       </div>
       <div class="manual">
@@ -102,7 +108,7 @@ const showLogin = () => {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .home {
   min-height: 1000px;
   height: 100%;

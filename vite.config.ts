@@ -6,13 +6,19 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueJsx()
-  ],
+  plugins: [vue(), vueJsx()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src')
+    }
+  },
+  // 配置跨域代理
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      }
     }
   }
 })

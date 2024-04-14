@@ -4,8 +4,8 @@
 import { defineStore } from 'pinia'
 import type { UserState } from '@/stores/modules/interface'
 import { GET_USER_TOKEN, REMOVE_USER_INFO, SAVE_USER_TOKEN } from '@/utils/persistent_data'
-import type { LoginData } from '@/api/user/type'
-import { reqCaptcha, reqUserLogin } from '@/api/user'
+import type { LoginData, UserDetail } from '@/api/user/type'
+import { reqCaptcha, reqEditUserDetail, reqUserLogin } from '@/api/user'
 
 const useUserStore = defineStore('User', {
   state(): UserState {
@@ -19,6 +19,18 @@ const useUserStore = defineStore('User', {
     // 用户登录
     async userLogin(loginData: LoginData) {
       const result = await reqUserLogin(loginData)
+      if (result.code == 200) {
+        this.userInfo = result.data
+        // 持久化数据
+        SAVE_USER_TOKEN(JSON.stringify(this.userInfo))
+        return 'ok'
+      } else {
+        return Promise.reject(new Error(result.message))
+      }
+    },
+    // 用户修改个人信息
+    async userUpdate(userDetail: UserDetail) {
+      const result = await reqEditUserDetail(userDetail)
       if (result.code == 200) {
         this.userInfo = result.data
         // 持久化数据
@@ -42,7 +54,9 @@ const useUserStore = defineStore('User', {
     async loginOut() {
       this.userInfo = {
         nickName: '',
-        token: ''
+        token: '',
+        uuid: '',
+        avatar: ''
       }
       REMOVE_USER_INFO()
     },
