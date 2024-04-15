@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 // 倒计时
-let time = ref<number>(5)
+let time = ref<number>(60)
 // 获取父组件的标记（标记是否需要展示倒计时并开始）
 let props = defineProps(['isDown'])
 let $emit = defineEmits(['getFlag'])

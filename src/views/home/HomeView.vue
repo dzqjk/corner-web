@@ -29,10 +29,10 @@ const showLogin = () => {
     <div class="right">
       <div class="userInfo">
         <el-avatar
-          :src="userStore.userInfo.avatar != '' ? userStore.userInfo.avatar : defaultAvatar"
+          :src="userStore.userInfo?.avatar ? userStore.userInfo?.avatar : defaultAvatar"
         />
-        <span>{{ userStore.userInfo.nickName != '' ? userStore.userInfo.nickName : '游客' }}</span>
-        <span v-if="userStore.userInfo.uuid == ''">
+        <span>{{ userStore.userInfo?.nickName  ? userStore.userInfo?.nickName : '游客' }}</span>
+        <span v-if="!userStore.userInfo?.uuid">
           <el-link :underline="false" type="primary" @click="showLogin">注册</el-link>
           <el-divider direction="vertical" />
           <el-link :underline="false" type="primary" @click="showLogin">登录</el-link>
