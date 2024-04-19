@@ -41,14 +41,14 @@ const router = createRouter({
       },
       children: [
         {
-          path: '/source/sourceList',
+          path: '/source/list',
           component: () => import('@/views/datasource/all/SourceListView.vue'),
           meta: {
             title: '数据源管理'
           }
         },
         {
-          path: '/source/sourceDetail',
+          path: '/source/detail/:sourceId',
           component: () => import('@/views/datasource/detail/SourceDetailView.vue'),
           meta: {
             title: '数据源管理'

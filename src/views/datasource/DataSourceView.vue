@@ -1,4 +1,42 @@
-<script setup lang="ts"></script>
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue'
+import { reqSourceType } from '@/api/source'
+import { useRouter } from 'vue-router'
+
+// 编程式路由
+let $router = useRouter()
+// 接收请求数据源类型API返回的数据
+let sourceType = ref<any>()
+// 标记当前数据源类型
+let currentType = ref<number>(0)
+
+onMounted(() => {
+  // 获取数据源类型信息
+  getSourceType()
+})
+
+// 获取数据源类型信息
+const getSourceType = async () => {
+  const result = await reqSourceType()
+  if (result.code == 200) {
+    sourceType.value = result.data
+  }
+}
+
+// 点击不同数据源类型
+const clickType = (typeId: number) => {
+  // 改变当前数据源类型
+  currentType.value = typeId
+  console.log('点击数据源类型')
+  // 通过路由跳转更新数据源列表数据
+  $router.push({
+    path: '/source/list',
+    query: {
+      typeId: typeId
+    }
+  })
+}
+</script>
 
 <template>
   <div class="source">
@@ -7,14 +45,14 @@
       <div class="top">
         <div class="title">
           <svg
-            t="1711896644458"
             class="icon"
-            viewBox="0 0 1024 1024"
-            version="1.1"
-            xmlns="http://www.w3.org/2000/svg"
-            p-id="2363"
-            width="24"
             height="24"
+            p-id="2363"
+            t="1711896644458"
+            version="1.1"
+            viewBox="0 0 1024 1024"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
           >
             <path
               d="M154.737778 750.933333V603.022222c67.015111 54.272 191.715556 91.022222 334.506666 91.022222v-52.337777c-204.231111 0-334.506667-76.8-334.506666-129.706667V364.088889c67.015111 54.272 191.715556 91.022222 334.506666 91.022222s267.491556-36.408889 334.506667-91.022222v138.808889H876.088889V273.066667c0-100.579556-173.169778-182.044444-386.844445-182.044445S102.4 172.487111 102.4 273.066667v477.866666c0 100.579556 173.169778 182.044444 386.844444 182.044445v-52.337778c-204.231111 0-334.506667-76.8-334.506666-129.706667zM489.244444 143.36c204.8 0 334.506667 76.8 334.506667 129.706667S694.044444 402.773333 489.244444 402.773333 154.737778 325.973333 154.737778 273.066667 285.013333 143.36 489.244444 143.36zM557.511111 864.711111h364.088889v45.511111H557.511111z"
@@ -40,108 +78,18 @@
       </div>
       <div class="menu">
         <ul>
-          <li class="type all active">
-            <span>全部数据源(100)</span>
+          <li class="type all" :class="{ active: currentType == 0 }" @click="clickType(0)">
+            <span>全部数据源({{ sourceType?.total }})</span>
           </li>
-          <li class="type">
-            <svg
-              t="1711897053783"
-              class="icon"
-              viewBox="0 0 1024 1024"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              p-id="7189"
-              width="18"
-              height="18"
-            >
-              <path
-                d="M128 64h768a64 64 0 0 1 64 64v768a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V128a64 64 0 0 1 64-64z"
-                fill="#FDCB00"
-                p-id="7190"
-              ></path>
-              <path
-                d="M192 192h87.232v556.288H192V192z m184.128 0H463.36v640H376.128V192zM560.64 192h87.232v640H560.64V192z m184.128 0H832v640h-87.232V192z"
-                fill="#FFFFFF"
-                p-id="7191"
-              ></path>
-              <path d="M192 748.288h87.232V832H192z" fill="#FF0000" p-id="7192"></path>
-            </svg>
-            <span>ClickHouse(12)</span>
-          </li>
-          <li class="type">
-            <svg
-              t="1711897053783"
-              class="icon"
-              viewBox="0 0 1024 1024"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              p-id="7189"
-              width="18"
-              height="18"
-            >
-              <path
-                d="M128 64h768a64 64 0 0 1 64 64v768a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V128a64 64 0 0 1 64-64z"
-                fill="#FDCB00"
-                p-id="7190"
-              ></path>
-              <path
-                d="M192 192h87.232v556.288H192V192z m184.128 0H463.36v640H376.128V192zM560.64 192h87.232v640H560.64V192z m184.128 0H832v640h-87.232V192z"
-                fill="#FFFFFF"
-                p-id="7191"
-              ></path>
-              <path d="M192 748.288h87.232V832H192z" fill="#FF0000" p-id="7192"></path>
-            </svg>
-            <span>ClickHouse(12)</span>
-          </li>
-          <li class="type">
-            <svg
-              t="1711897053783"
-              class="icon"
-              viewBox="0 0 1024 1024"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              p-id="7189"
-              width="18"
-              height="18"
-            >
-              <path
-                d="M128 64h768a64 64 0 0 1 64 64v768a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V128a64 64 0 0 1 64-64z"
-                fill="#FDCB00"
-                p-id="7190"
-              ></path>
-              <path
-                d="M192 192h87.232v556.288H192V192z m184.128 0H463.36v640H376.128V192zM560.64 192h87.232v640H560.64V192z m184.128 0H832v640h-87.232V192z"
-                fill="#FFFFFF"
-                p-id="7191"
-              ></path>
-              <path d="M192 748.288h87.232V832H192z" fill="#FF0000" p-id="7192"></path>
-            </svg>
-            <span>ClickHouse(12)</span>
-          </li>
-          <li class="type">
-            <svg
-              t="1711897053783"
-              class="icon"
-              viewBox="0 0 1024 1024"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              p-id="7189"
-              width="18"
-              height="18"
-            >
-              <path
-                d="M128 64h768a64 64 0 0 1 64 64v768a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V128a64 64 0 0 1 64-64z"
-                fill="#FDCB00"
-                p-id="7190"
-              ></path>
-              <path
-                d="M192 192h87.232v556.288H192V192z m184.128 0H463.36v640H376.128V192zM560.64 192h87.232v640H560.64V192z m184.128 0H832v640h-87.232V192z"
-                fill="#FFFFFF"
-                p-id="7191"
-              ></path>
-              <path d="M192 748.288h87.232V832H192z" fill="#FF0000" p-id="7192"></path>
-            </svg>
-            <span>ClickHouse(12)</span>
+          <li
+            class="type"
+            :class="{ active: currentType == item.id }"
+            v-for="item in sourceType?.list.filter((info: any) => info.sourceCount > 0)"
+            :key="item.id"
+            @click="clickType(item.id)"
+          >
+            <el-image class="logo" size="small" :src="item.logoUrl" />
+            <span>{{ item.typeName }}({{ item.sourceCount }})</span>
           </li>
         </ul>
       </div>
@@ -153,7 +101,7 @@
   </div>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .source {
   height: 100%;
   display: flex;
@@ -201,6 +149,11 @@
         align-items: center;
         cursor: pointer;
         margin: 0 0 15px 30px;
+
+        .logo {
+          height: 16px;
+          width: 16px;
+        }
 
         :hover {
           color: #1e90ff;

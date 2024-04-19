@@ -106,7 +106,7 @@ const successHandler: UploadProps['onSuccess'] = (response, uploadFiles) => {
 const exceedHandler: UploadProps['onExceed'] = (files, uploadFiles) => {
   ElMessage({
     type: 'error',
-    message: '证件照最多只能上传一张！',
+    message: '头像最多只能上传一张！',
     showClose: true,
     center: true
   })

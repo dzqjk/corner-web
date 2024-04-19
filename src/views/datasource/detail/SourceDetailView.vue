@@ -41,13 +41,15 @@ const resetData = () => {
 }
 
 // 页面挂载时执行
-onMounted(() => {})
+onMounted(() => {
+  console.log($route)
+})
 
 // 点击编辑按钮
 const goDetail = (type: string) => {
   $router.push({
-    path: '/source/sourceDetail',
-    query: { type: type, sourceId: $route.query.sourceId }
+    path: '/source/detail/' + $route.params.sourceId,
+    query: { type: type }
   })
 }
 </script>
