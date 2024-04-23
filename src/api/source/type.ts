@@ -18,6 +18,18 @@ export interface SourceType {
   sourceList: SourceInfo[]
 }
 
+export interface SourceInfoBody {
+  sourceId?: number
+  typeId: number
+  sourceName: string
+  sourceFlag: string
+  sourceUrl: string
+  sourceCategory: string
+  ownerName: string
+  account: string
+  password: string
+}
+
 export interface SourceInfo {
   createTime: string
   ownerName: string
@@ -37,13 +49,24 @@ export interface SourceInfo {
   }
 }
 
+export type SourceTypeList = SourceType[]
+export type SourceInfoList = SourceInfo[]
+
 export interface SourceTypeResponse extends ResponseData {
   data: {
-    list: SourceType[]
+    list: SourceTypeList
     total: number
   }
 }
 
+export interface SimpleSourceTypeResponse extends ResponseData {
+  data: SourceTypeList
+}
+
 export interface SourceInfoResponse extends ResponseData {
-  data: SourceInfo[]
+  data: SourceInfo
+}
+
+export interface SourceInfoListResponse extends ResponseData {
+  data: SourceInfoList
 }

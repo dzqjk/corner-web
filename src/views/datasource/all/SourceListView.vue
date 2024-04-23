@@ -3,7 +3,7 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
-import { reqSourceInfo } from '@/api/source'
+import { reqSourceInfoList } from '@/api/source'
 import type { SourInfoCondition } from '@/api/source/type'
 
 let $route = useRoute()
@@ -30,19 +30,19 @@ watch(
     // 路由变化时将query参数赋值给conditionData
     conditionData.typeId = $route.query.typeId ? Number($route.query.typeId) : 0
     // 并重新执行查询数据源信息数据
-    getSourceInfo()
+    getSourceInfoList()
   }
 )
 
 // 页面挂载时需要完成的操作
 onMounted(() => {
   // 查询数据源信息数据
-  getSourceInfo()
+  getSourceInfoList()
 })
 
 // 查询数据源信息数据
-const getSourceInfo = async () => {
-  const result = await reqSourceInfo(pageNo.value, pageSize.value, conditionData)
+const getSourceInfoList = async () => {
+  const result = await reqSourceInfoList(pageNo.value, pageSize.value, conditionData)
   if (result.code == 200) {
     sourceInfo.value = result.data
   }
@@ -59,13 +59,13 @@ const goDetail = (row: any, type: string) => {
 // 分页栏点击回调
 const paginationChange = () => {
   // 重新获取数据
-  getSourceInfo()
+  getSourceInfoList()
 }
 
 // 条件查询
 const conditionChange = () => {
   // 重新获取数据
-  getSourceInfo()
+  getSourceInfoList()
 }
 </script>
 

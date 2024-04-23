@@ -12,7 +12,11 @@ let userStore = useUserStore()
 
 // 点击菜单跳转页面
 const goView = (path: string) => {
-  $router.push({ path: path, query: { uuid: userStore.userInfo?.uuid } })
+  if (path == '/userInfo') {
+    $router.push({ path: path, query: { uuid: userStore.userInfo?.uuid } })
+  } else {
+    $router.push({ path: path })
+  }
 }
 
 // 点击安全退出
