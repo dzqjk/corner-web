@@ -27,7 +27,6 @@ const getSourceType = async () => {
 const clickType = (typeId: number) => {
   // 改变当前数据源类型
   currentType.value = typeId
-  console.log('点击数据源类型')
   // 通过路由跳转更新数据源列表数据
   $router.push({
     path: '/source/list',

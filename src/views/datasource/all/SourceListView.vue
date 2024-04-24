@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from 'vue'
-import type { FormInstance } from 'element-plus'
+import { ElMessage, type FormInstance } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
-import { reqSourceInfoList } from '@/api/source'
+import { reqDeleteSourceInfo, reqSourceInfoList, reqTestSourceInfo } from '@/api/source'
 import type { SourInfoCondition } from '@/api/source/type'
 
 let $route = useRoute()
@@ -53,6 +53,55 @@ const goDetail = (row: any, type: string) => {
   $router.push({
     path: '/source/detail/' + row.sourceId,
     query: { type: type }
+  })
+}
+
+// 点击测试连接按钮的回调
+const testSource = async (row: any) => {
+  const result = await reqTestSourceInfo(row)
+  if (result.code == 200) {
+    ElMessage({
+      type: 'success',
+      message: '测试连接成功',
+      showClose: true,
+      center: true
+    })
+  } else {
+    ElMessage({
+      type: 'error',
+      message: result.message,
+      showClose: true,
+      center: true
+    })
+  }
+  // 无论测试成功还是失败 都要重新获取数据
+  getSourceInfoList()
+}
+
+// 点击删除按钮的回调
+const deleteSource = async (row: any) => {
+  // 发送请求删除数据源
+  const result = await reqDeleteSourceInfo(row.sourceId)
+  if (result.code == 200) {
+    ElMessage({
+      type: 'success',
+      message: '删除成功',
+      showClose: true,
+      center: true
+    })
+    // 删除成功 重新获取数据
+    getSourceInfoList()
+  }
+}
+
+// 取消删除回调
+const cancelDelete = (row: any) => {
+  ElMessage({
+    type: 'success',
+    message: `取消删除${row.sourceName}`,
+    showClose: true,
+    center: true,
+    duration: 1000
   })
 }
 
@@ -143,8 +192,31 @@ const conditionChange = () => {
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="数据源连接" prop="sourceUrl" show-overflow-tooltip width="250" />
-          <el-table-column label="负责人" prop="ownerName" show-overflow-tooltip width="100" />
+          <el-table-column label="数据源连接" prop="sourceUrl" width="350">
+            <template #default="scope">
+              <el-row>
+                <el-col :span="5">
+                  <el-tag v-if="scope.row.isTest == 0" effect="dark" size="small" type="info">
+                    未测试
+                  </el-tag>
+                  <el-tag v-if="scope.row.isTest == 1" effect="dark" size="small" type="success">
+                    测试通过
+                  </el-tag>
+                  <el-tag v-if="scope.row.isTest == 2" effect="dark" size="small" type="danger">
+                    测试失败
+                  </el-tag>
+                </el-col>
+                <el-col :span="19">
+                  <el-tooltip :content="scope.row.sourceUrl" placement="top">
+                    <el-text class="source-url">
+                      {{ scope.row.sourceUrl }}
+                    </el-text>
+                  </el-tooltip>
+                </el-col>
+              </el-row>
+            </template>
+          </el-table-column>
+          <el-table-column label="负责人" prop="ownerName" show-overflow-tooltip width="150" />
           <el-table-column
             label="最近修改时间"
             prop="updateTime"
@@ -157,8 +229,22 @@ const conditionChange = () => {
               <el-button link size="small" type="primary" @click="goDetail(scop.row, 'edit')">
                 编辑
               </el-button>
-              <el-button link size="small" type="primary">测试连接</el-button>
-              <el-button link size="small" type="danger">删除</el-button>
+              <el-button link size="small" type="primary" @click="testSource(scop.row)"
+                >测试连接
+              </el-button>
+              <el-popconfirm
+                :title="`确定删除数据源：${scop.row.sourceName}吗?`"
+                cancel-button-text="取消"
+                confirm-button-text="确认"
+                confirm-button-type="danger"
+                width="200"
+                @cancel="cancelDelete(scop.row)"
+                @confirm="deleteSource(scop.row)"
+              >
+                <template #reference>
+                  <el-button link size="small" type="danger">删除</el-button>
+                </template>
+              </el-popconfirm>
             </template>
           </el-table-column>
         </el-table>
@@ -198,6 +284,12 @@ const conditionChange = () => {
     .top {
       display: flex;
       justify-content: right;
+    }
+
+    .source-url {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .pagination {
