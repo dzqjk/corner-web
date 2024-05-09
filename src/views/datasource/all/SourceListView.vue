@@ -69,7 +69,7 @@ const testSource = async (row: any) => {
   } else {
     ElMessage({
       type: 'error',
-      message: result.message,
+      message: result.data,
       showClose: true,
       center: true
     })
@@ -207,7 +207,7 @@ const conditionChange = () => {
                   </el-tag>
                 </el-col>
                 <el-col :span="19">
-                  <el-tooltip :content="scope.row.sourceUrl" placement="top">
+                  <el-tooltip :content="scope.row.sourceUrl" placement="top-start">
                     <el-text class="source-url">
                       {{ scope.row.sourceUrl }}
                     </el-text>

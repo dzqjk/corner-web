@@ -2,11 +2,12 @@
 import { onMounted, ref } from 'vue'
 import { reqSourceType } from '@/api/source'
 import { useRouter } from 'vue-router'
+import type { SourceTypeMenu } from '@/api/source/type'
 
 // 编程式路由
 let $router = useRouter()
 // 接收请求数据源类型API返回的数据
-let sourceType = ref<any>()
+let sourceType = ref<SourceTypeMenu>()
 // 标记当前数据源类型
 let currentType = ref<number>(0)
 
@@ -83,12 +84,12 @@ const clickType = (typeId: number) => {
           <li
             class="type"
             :class="{ active: currentType == item.id }"
-            v-for="item in sourceType?.list.filter((info: any) => info.sourceCount > 0)"
+            v-for="item in sourceType?.list"
             :key="item.id"
             @click="clickType(item.id)"
           >
             <el-image class="logo" size="small" :src="item.logoUrl" />
-            <span>{{ item.typeName }}({{ item.sourceCount }})</span>
+            <span>{{ item.typeName }}({{ item.total }})</span>
           </li>
         </ul>
       </div>

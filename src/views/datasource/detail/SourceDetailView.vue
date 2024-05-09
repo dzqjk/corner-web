@@ -9,9 +9,18 @@ import {
   reqSourceInfo
 } from '@/api/source'
 import type { SourceInfoBody, SourceTypeList } from '@/api/source/type'
+import type { UserDetailList } from '@/api/user/type'
+import { reqUserList } from '@/api/user'
+import useUserStore from '@/stores/modules/user'
 
 let $router = useRouter()
 let $route = useRoute()
+
+// 用户仓库
+let userStore = useUserStore()
+
+// 存储用户列表
+let userList = ref<UserDetailList>()
 
 // 存储数据源类型数据
 let sourceTypeList = ref<SourceTypeList>([])
@@ -25,7 +34,7 @@ let sourceInfo = reactive<SourceInfoBody>({
   sourceFlag: '',
   sourceUrl: '',
   sourceCategory: '',
-  ownerName: '',
+  userUUId: userStore.userInfo.uuid,
   account: '',
   password: ''
 })
@@ -49,12 +58,14 @@ const resetData = () => {
     password: '',
     sourceCategory: '',
     sourceUrl: '',
-    ownerName: ''
+    userUUId: userStore.userInfo.uuid
   })
 }
 
 // 页面挂载时执行
 onMounted(() => {
+  // 获取用户信息
+  getUserList()
   // 获取数据源类型信息（简单）
   getSimpleSourceType()
   if ($route.query.type == 'add') {
@@ -68,6 +79,13 @@ onMounted(() => {
     getSourceInfo()
   }
 })
+
+const getUserList = async () => {
+  const result = await reqUserList()
+  if (result.code == 200) {
+    userList.value = result.data
+  }
+}
 
 // 获取简单数据源信息
 const getSimpleSourceType = async () => {
@@ -142,6 +160,20 @@ const goDetail = (type: string) => {
     query: { type: type }
   })
 }
+
+// 选择负责人的联想搜索
+/*const fetchUserData = async (key: string, callback: any) => {
+  const result: UserDetailListResponse = await reqUserByNameList(key)
+  // 解析数据
+  let showData = result.data.map((item) => {
+    return {
+      value: item.nickName, // 返回用户昵称
+      userId: item.id // 返回用户id
+    }
+  })
+  // 回调展示
+  callback(showData)
+}*/
 </script>
 
 <template>
@@ -206,14 +238,20 @@ const goDetail = (type: string) => {
           </el-select>
         </el-form-item>
         <el-form-item label="负责人：">
-          <el-input
-            v-model="sourceInfo.ownerName"
+          <el-select
+            v-model="sourceInfo.userUUId"
             :disabled="$route.query.type == 'view'"
             clearable
-            placeholder="请输入负责人名称"
-            style="width: 40%"
-            type="text"
-          />
+            style="width: 30%"
+            placeholder="请选择负责人"
+          >
+            <el-option
+              v-for="item in userList"
+              :key="item.id"
+              :label="item.nickName + ` (${item.phone})`"
+              :value="item.uuid"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="数据源连接：">
           <el-input

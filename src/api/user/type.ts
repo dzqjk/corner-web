@@ -31,6 +31,13 @@ export interface UserDetail {
   updateTime: string
 }
 
+// 用户信息集合
+export type UserDetailList = UserDetail[]
+
 export interface UserDetailResponse extends ResponseData {
   data: UserDetail
+}
+
+export interface UserDetailListResponse extends ResponseData {
+  data: UserDetailList
 }

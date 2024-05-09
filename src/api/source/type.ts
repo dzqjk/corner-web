@@ -14,8 +14,8 @@ export interface SourceType {
   id: number
   typeName: string
   logoUrl: string
-  sourceCount: number
-  sourceList: SourceInfo[]
+  total: number
+  children: SourceInfo[]
 }
 
 export interface SourceInfoBody {
@@ -25,14 +25,14 @@ export interface SourceInfoBody {
   sourceFlag: string
   sourceUrl: string
   sourceCategory: string
-  ownerName: string
+  userUUId: string
   account: string
   password: string
 }
 
 export interface SourceInfo {
   createTime: string
-  ownerName: string
+  userId: number
   account: string
   password: string
   sourceCategory: string
@@ -42,6 +42,7 @@ export interface SourceInfo {
   sourceUrl: string
   typeId: number
   updateTime: string
+  isDel: number
   sourceType: {
     id: number
     typeName: string
@@ -52,11 +53,13 @@ export interface SourceInfo {
 export type SourceTypeList = SourceType[]
 export type SourceInfoList = SourceInfo[]
 
+export type SourceTypeMenu = {
+  list: SourceTypeList
+  total: number
+}
+
 export interface SourceTypeResponse extends ResponseData {
-  data: {
-    list: SourceTypeList
-    total: number
-  }
+  data: SourceTypeMenu
 }
 
 export interface SimpleSourceTypeResponse extends ResponseData {
