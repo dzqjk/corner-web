@@ -2,7 +2,7 @@
  * 任务相关的接口
  */
 import request from '@/utils/request'
-import type { TableInfoResponse, TaskCondition, TaskInfoResponse } from '@/api/task/type'
+import type { TableInfoResponse, TaskCondition, TaskInfo, TaskInfoResponse } from '@/api/task/type'
 import type { SimpleSourceTypeResponse } from '@/api/source/type'
 
 enum API {
@@ -42,3 +42,10 @@ export const reqTableInfo = (sourceId: number, databaseName: string, tableName: 
   request.get<any, TableInfoResponse>(
     API.TABLE_INFO_URL + `${sourceId}?databaseName=${databaseName}&tableName=${tableName}`
   )
+
+export const reqAddTask = (taskInfo: TaskInfo) => request.post<any, any>(API.TASK_ADD_URL, taskInfo)
+
+export const reqEditTask = (taskInfo: TaskInfo) =>
+  request.put<any, any>(API.TASK_DETAIL_URL + `${taskInfo.taskId}`, taskInfo)
+
+export const reqRunTask = (taskInfo: TaskInfo) => request.post<any, any>(API.TASK_RUN_URL, taskInfo)

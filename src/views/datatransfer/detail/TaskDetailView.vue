@@ -2,11 +2,11 @@
 import { ArrowLeft, QuestionFilled } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, reactive, ref, watch } from 'vue'
-import type { FormInstance } from 'element-plus'
+import { ElMessage, type FormInstance } from 'element-plus'
 import { reqUserList } from '@/api/user'
 import type { UserDetailList } from '@/api/user/type'
 import useUserStore from '@/stores/modules/user'
-import { reqTableInfo, reqTaskInfo } from '@/api/task'
+import { reqAddTask, reqEditTask, reqTableInfo, reqTaskInfo } from '@/api/task'
 import type { TableInfo, TaskInfo } from '@/api/task/type'
 import type { SourceInfoList, SourceTypeList } from '@/api/source/type'
 import {
@@ -67,6 +67,10 @@ let taskFormData = reactive<TaskInfo>({
 
 // 页面挂载时进行的操作
 onMounted(() => {
+  if ($route.query.type != 'add') {
+    // 获取任务详情
+    getTaskInfo()
+  }
   // 获取用户列表
   getUserList()
   // 获取数据源类型列表
@@ -75,10 +79,6 @@ onMounted(() => {
   getSourceInfoByKey('')
   // 获取数据去向信息
   getSinkInfoByKey('')
-  if ($route.query.type != 'add') {
-    // 获取任务详情
-    getTaskInfo()
-  }
 })
 
 // 监听数据来源表是否改变
@@ -135,7 +135,7 @@ const getSourceTypeByKey = async (key: string) => {
 // 获取数据源信息
 const getSourceInfoByKey = async (key: string) => {
   const result = await reqSourceInfoByName(
-    taskFormData.sourceType ? taskFormData.sourceType : -1,
+    taskFormData.sourceType ? taskFormData.sourceType : 0,
     key
   )
   if (result.code == 200) {
@@ -145,7 +145,7 @@ const getSourceInfoByKey = async (key: string) => {
 
 // 获取数据去向信息
 const getSinkInfoByKey = async (key: string) => {
-  const result = await reqSourceInfoByName(taskFormData.sinkType ? taskFormData.sinkType : -1, key)
+  const result = await reqSourceInfoByName(taskFormData.sinkType ? taskFormData.sinkType : 0, key)
   if (result.code == 200) {
     sinkInfoList.value = result.data
   }
@@ -218,6 +218,84 @@ const getSinkTableInfo = async () => {
       .join('$$')
     taskFormData.sinkPartition = sinkTableInfo.value.partitionColumn
   }
+}
+
+// 点击提交按钮
+const submitEdit = async () => {
+  if ($route.query.type == 'add') {
+    const result = await reqAddTask(taskFormData)
+    if (result.code == 200) {
+      ElMessage({
+        message: '添加成功',
+        type: 'success',
+        duration: 2000,
+        showClose: true,
+        center: true
+      })
+      // 返回之列表页
+      $router.back()
+    } else {
+      ElMessage({
+        message: result.message,
+        type: 'error',
+        duration: 2000,
+        showClose: true,
+        center: true
+      })
+      // 返回之列表页
+      $router.back()
+    }
+  } else if ($route.query.type == 'edit') {
+    const result = await reqEditTask(taskFormData)
+    if (result.code == 200) {
+      ElMessage({
+        message: '编辑成功',
+        type: 'success',
+        duration: 2000,
+        showClose: true,
+        center: true
+      })
+      // 返回之列表页
+      $router.push({ path: '/transfer/taskList' })
+      // 重置表单数据
+    } else {
+      ElMessage({
+        message: result.message,
+        type: 'error',
+        duration: 2000,
+        showClose: true,
+        center: true
+      })
+    }
+  }
+}
+
+const resetTaskForm = () => {
+  Object.assign(taskFormData, {
+    taskId: 0,
+    taskName: '', // 任务名称
+    userUUId: userStore.userInfo.uuid, // 负责人uuid
+    ownerInfo: {},
+    sourceId: undefined, // 数据来源id
+    sourceInfo: {},
+    sourceType: undefined, // 数据来源类型
+    sourceTypeInfo: {},
+    sourceDatabase: '', // 数据来源库
+    sourceTable: '', // 数据来源表
+    sourceColumns: '',
+    sourceCondition: '', // 数据来源过滤条件
+    sinkId: undefined, // 数据去向id
+    sinkInfo: {},
+    sinkTypeInfo: {},
+    sinkType: undefined, // 数据去向类型
+    sinkDatabase: '', // 数据去向库
+    sinkTable: '', // 数据去向表
+    sinkInsertMode: 0,
+    sinkPartition: '',
+    sinkPartitionVal: '',
+    sinkColumns: '',
+    taskDescription: ''
+  })
 }
 </script>
 
@@ -522,7 +600,13 @@ const getSinkTableInfo = async () => {
       </div>
       <!-- 提交 -->
       <div class="footer">
-        <el-button v-if="$route.query.type != 'view'" size="small" type="primary">提交</el-button>
+        <el-button
+          v-if="$route.query.type != 'view'"
+          size="small"
+          type="primary"
+          @click="submitEdit"
+          >提交
+        </el-button>
         <el-popconfirm
           v-if="$route.query.type != 'view'"
           :icon="QuestionFilled"

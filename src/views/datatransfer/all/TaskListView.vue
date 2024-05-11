@@ -3,7 +3,13 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
-import { reqDeleteTask, reqTaskList, reqTaskSinkType, reqTaskSourceType } from '@/api/task'
+import {
+  reqDeleteTask,
+  reqRunTask,
+  reqTaskList,
+  reqTaskSinkType,
+  reqTaskSourceType
+} from '@/api/task'
 import type { SourceTypeList } from '@/api/source/type'
 
 let $router = useRouter()
@@ -140,6 +146,30 @@ const cancelDeleteTask = () => {
     showClose: true,
     center: true
   })
+}
+
+// 点击运行按钮的回调
+const runTask = async (taskInfo: any) => {
+  const result = await reqRunTask(taskInfo)
+  if (result.code == 200) {
+    ElMessage({
+      type: 'success',
+      message: '执行成功',
+      duration: 2000,
+      showClose: true,
+      center: true
+    })
+    // 重新获取数据
+    getTaskList()
+  } else {
+    ElMessage({
+      type: 'error',
+      message: result.msg,
+      duration: 2000,
+      showClose: true,
+      center: true
+    })
+  }
 }
 </script>
 
@@ -324,7 +354,9 @@ const cancelDeleteTask = () => {
                   <el-button link size="small" type="primary" @click="goDetail(scop.row, 'edit')">
                     编辑
                   </el-button>
-                  <el-button link size="small" type="primary">运行</el-button>
+                  <el-button link size="small" type="primary" @click="runTask(scop.row)"
+                    >运行
+                  </el-button>
                   <el-popconfirm
                     :title="`确定删除任务：${scop.row.taskName}吗?`"
                     cancel-button-text="取消"
