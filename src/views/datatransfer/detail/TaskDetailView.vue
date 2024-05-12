@@ -459,6 +459,7 @@ const resetTaskForm = () => {
               <el-form-item label="数据过滤:">
                 <el-input
                   v-model="taskFormData.sourceCondition"
+                  :disabled="$route.query.type == 'view'"
                   placeholder="输入where关键词之后的条件"
                   style="width: 90%"
                   type="textarea"

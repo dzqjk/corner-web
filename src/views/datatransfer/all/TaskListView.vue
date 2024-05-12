@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Download, Search } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   reqDeleteTask,
@@ -296,6 +296,19 @@ const runTask = async (taskInfo: any) => {
                   <el-tag v-if="scope.row.runStatus == 3" effect="dark" size="small" type="danger">
                     运行失败
                   </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="运行日志" prop="runStatus" show-overflow-tooltip width="150">
+                <template #default="scope">
+                  <el-link
+                    v-if="scope.row.runLog"
+                    :href="scope.row.runLog"
+                    :icon="Download"
+                    target="_blank"
+                    type="primary"
+                    >下载日志
+                  </el-link>
+                  <el-text v-else type="warning">暂无运行日志</el-text>
                 </template>
               </el-table-column>
               <el-table-column
