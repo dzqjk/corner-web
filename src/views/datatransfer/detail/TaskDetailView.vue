@@ -31,7 +31,6 @@ let sourceTableList = ref<string[]>()
 let sourceTableInfo = ref<TableInfo>()
 
 // 存储数据去向信息
-let sinkTypeList = ref<SourceTypeList>()
 let sinkInfoList = ref<SourceInfoList>()
 let sinkDatabaseList = ref<string[]>()
 let sinkTableList = ref<string[]>()
@@ -117,6 +116,8 @@ const getTaskInfo = async () => {
 // 点击取消按钮或返回
 const cancelAdd = () => {
   $router.back()
+  // 重置表单数据
+  resetTaskForm()
 }
 
 // 取消添加或编辑任务
@@ -234,6 +235,7 @@ const submitEdit = async () => {
       })
       // 返回之列表页
       $router.back()
+      resetTaskForm()
     } else {
       ElMessage({
         message: result.message,
@@ -244,6 +246,7 @@ const submitEdit = async () => {
       })
       // 返回之列表页
       $router.back()
+      resetTaskForm()
     }
   } else if ($route.query.type == 'edit') {
     const result = await reqEditTask(taskFormData)
@@ -258,6 +261,7 @@ const submitEdit = async () => {
       // 返回之列表页
       $router.push({ path: '/transfer/taskList' })
       // 重置表单数据
+      resetTaskForm()
     } else {
       ElMessage({
         message: result.message,
@@ -266,6 +270,8 @@ const submitEdit = async () => {
         showClose: true,
         center: true
       })
+      // 重置表单数据
+      resetTaskForm()
     }
   }
 }
