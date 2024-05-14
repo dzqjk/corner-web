@@ -2,13 +2,21 @@
 // 引入ace-builds配置文件
 import '@/ace-config'
 import { VAceEditor } from 'vue3-ace-editor/index'
-import { Loading, Refresh, Search, SuccessFilled } from '@element-plus/icons-vue'
+import { CircleCloseFilled, Loading, Refresh, Search, SuccessFilled } from '@element-plus/icons-vue'
 // 引入sql-formatter
 import { formatDialect, hive } from 'sql-formatter'
 import { ElMessage } from 'element-plus'
+import { reqLastQuery, reqQueryInfo, reqQueryInfoList, reqRunQuery } from '@/api/analysis/index'
 
-import { onMounted, reactive, ref } from 'vue'
-import { reqSourceDatabasesByName, reqSourceTablesByName, reqSourceType } from '@/api/source'
+import { onMounted, reactive, ref, watch } from 'vue'
+import {
+  reqSourceDatabasesByName,
+  reqSourceInfoById,
+  reqSourceTablesByName,
+  reqSourceType
+} from '@/api/source'
+import type { SourceInfoResponse } from '@/api/source/type'
+import type { QueryInfo, QueryInfoList } from '@/api/analysis/type'
 
 let sourceTypeAndInfo = ref<any>()
 
@@ -18,13 +26,25 @@ let curMenuDatabaseList = ref<string[]>()
 let curMenuTable = ref<string>('')
 let curMenuTableList = ref<any>('')
 
+let curRunResult = ref<any>()
+let prevRunSql = ref<string>('')
+let curPane = ref<string>('运行信息')
+let curRunLog = ref<string[]>([])
+
 // 接收提交查询是所需的参数
-let queryData = reactive({
-  sql: '', // sql语句
-  sourceId: 1, // 引擎
-  database: '', // 数据库
-  runStatus: 2 // 运行状态：0表示未运行，1表示正在运行，2表示运行成功，3表示运行失败
+let queryData = reactive<QueryInfo>({
+  queryId: 0,
+  uuid: '',
+  sourceId: 1,
+  querySql: '', // sql语句
+  queryResult: '',
+  runEngine: 'spark', // 引擎
+  runLog: '',
+  runDuration: 0,
+  runStartTime: '',
+  runStatus: 1 // 运行状态：0运行成功 1运行中 2运行失败
 })
+let historyQuery = ref<QueryInfoList>()
 
 let viewEditor = ref<any>()
 let queryEditor = ref<any>()
@@ -47,9 +67,9 @@ const ace_options = {
   // 设置缩进宽度
   tabSize: 4,
   // 设置最大行数
-  maxLines: 30,
+  maxLines: 32,
   // 设置最小行数
-  minLines: 30,
+  minLines: 32,
   // 是否使用空格代替制表符进行缩进
   useSoftTabs: true,
   // 是否启用自动缩进
@@ -71,7 +91,7 @@ const ace_options = {
 }
 
 // 格式化sql的配置
-const format_options = reactive({
+const format_options = reactive<any>({
   dialect: hive, // sql 方言
   tabWidth: 4, // 缩进宽度
   keywordCase: 'lower', // 大写或小写关键字
@@ -80,25 +100,63 @@ const format_options = reactive({
 })
 
 // 提交查询
-const runQuery = () => {
-  // 修改标记sql是否正在运行
-  queryData.runStatus = 1
+const runQuery = async () => {
+  const result = await reqRunQuery(queryData)
+  if (result.code === 200) {
+    ElMessage({
+      type: 'success',
+      message: '提交运行',
+      duration: 2000,
+      showClose: true,
+      center: true
+    })
+    // 成功之后每隔1秒获取一次当前查询的信息 queryInfoResponse
+    let queryInfoResponse: any = {}
+    let queryInfoByUUID: any = {}
+    const webSocket = new WebSocket(`ws://hadoop-bishe:8085/ws/log/${result.data}`)
+    // 跳转到日志界面，根据websoket连接获取服务器发送的日志
+    curPane.value = '日志'
+    webSocket.onmessage = (event) => {
+      curRunLog.value.push(event.data)
+    }
+    const timer = setInterval(async () => {
+      queryInfoResponse = await reqQueryInfo(result.data)
+      // 将返回的数据赋值给queryData
+      Object.assign(queryInfoByUUID, queryInfoResponse.data)
+      console.log('queryInfoByUUID = ' + JSON.stringify(queryInfoByUUID))
+      if (queryInfoByUUID.runStatus == 2 || queryInfoByUUID.runStatus == 0) {
+        clearInterval(timer)
+        // 展示运行信息页面
+        curPane.value = '运行信息'
+        // 将返回的数据赋值给queryData
+        Object.assign(queryData, queryInfoByUUID)
+      }
+    }, 5000)
+  } else {
+    ElMessage({
+      type: 'error',
+      message: result.message,
+      duration: 2000,
+      showClose: true,
+      center: true
+    })
+  }
 }
 
 // 格式化sql
 const formatSql = () => {
   // 格式化sql
-  const format_result = formatDialect(queryData.sql, format_options)
+  const format_result = formatDialect(queryData.querySql, format_options)
   // 输出格式化后的sql
-  queryData.sql = format_result
+  queryData.querySql = format_result
 }
 
 // 点击复制结果
 const copyResult = () => {
   const tableText =
     "'" +
-    tableData
-      .map((row) => {
+    curRunResult.value.data
+      .map((row: any) => {
         return Object.values(row).join("','") // 将每一行的数据转换为文本格式
       })
       .join("'\n'") +
@@ -146,55 +204,53 @@ const copySQL = (row: any) => {
     })
 }
 
-const tableData = [
-  {
-    date: '2016-05-03',
-    name: 'Tom',
-    address: 'No. 189, Grove St, Los Angeles'
-  },
-  {
-    date: '2016-05-02',
-    name: 'Tom',
-    address: 'No. 189, Grove St, Los Angeles'
-  },
-  {
-    date: '2016-05-04',
-    name: 'Tom',
-    address: 'No. 189, Grove St, Los Angeles'
-  },
-  {
-    date: '2016-05-01',
-    name: 'Tom',
-    address: 'No. 189, Grove St, Los Angeles'
-  }
-]
-
-const value = ref()
-
-const props = {
-  label: 'label',
-  children: 'children',
-  isLeaf: 'isLeaf'
-}
-
 // 页面挂载时执行的动作
 onMounted(() => {
   // 获取数据源信息
   getSourceTypeAndInfo()
   // 获取数据源对应的数据库
   getSourceDatabasesByName('')
+  // 获取最后一次执行的任务信息
+  getLastRunQuery()
+  // 获取历史执行的任务信息
+  getHistoryRunQuery()
 })
+
+watch(
+  () => queryData.queryResult,
+  () => {
+    const jsonObject = JSON.parse(queryData.queryResult)
+    curRunResult.value = jsonObject
+  }
+)
+
+// 获取最后一次执行的任务信息
+const getLastRunQuery = async () => {
+  const result = await reqLastQuery()
+  if (result.code == 200) {
+    Object.assign(queryData, result.data)
+    prevRunSql.value = result.data.querySql
+  }
+}
+
+// 获取历史执行的任务信息
+const getHistoryRunQuery = async () => {
+  const result = await reqQueryInfoList()
+  if (result.code == 200) {
+    historyQuery.value = result.data
+  }
+}
 
 // 获取数据源信息
 const getSourceTypeAndInfo = async () => {
   const result = await reqSourceType()
   if (result.code == 200) {
-    sourceTypeAndInfo.value = result.data.list.map((item) => {
+    sourceTypeAndInfo.value = result.data.list.map((item: any) => {
       return {
         id: item.id ? 0 : item.sourceId,
         value: item.id ? 0 : item.sourceId,
         label: item.typeName ? item.typeName : item.sourceName,
-        children: item.children.map((item) => {
+        children: item.children.map((item: any) => {
           return {
             id: item.id ? item.id : item.sourceId,
             value: item.id ? item.id : item.sourceId,
@@ -218,7 +274,7 @@ const getSourceDatabasesByName = async (key: string) => {
 const getSourceTablesByName = async (key: string) => {
   const result = await reqSourceTablesByName(curMenuSource.value, curMenuDatabase.value, key)
   if (result.code == 200) {
-    curMenuTableList.value = result.data.map((item) => {
+    curMenuTableList.value = result.data.map((item: string) => {
       return {
         tableName: item
       }
@@ -227,8 +283,16 @@ const getSourceTablesByName = async (key: string) => {
 }
 
 // 点击联动切换数据源
-const linkageSource = () => {
+const linkageSource = async () => {
   queryData.sourceId = curMenuSource.value
+  // 判断切换后的数据源类型动态更新查询的引擎
+  const result: SourceInfoResponse = await reqSourceInfoById(curMenuSource.value)
+  var sourceInfo = result.data
+  if (sourceInfo.sourceType.typeName.toLowerCase() == 'hive') {
+    queryData.runEngine = 'spark'
+  } else if (sourceInfo.sourceType.typeName.toLowerCase() == 'mysql') {
+    queryData.runEngine = 'jdbc'
+  }
 }
 </script>
 
@@ -334,7 +398,7 @@ const linkageSource = () => {
       <div class="content">
         <VAceEditor
           ref="queryEditor"
-          v-model:value="queryData.sql"
+          v-model:value="queryData.querySql"
           :options="ace_options"
           class="query-editor"
           lang="sqlserver"
@@ -342,28 +406,35 @@ const linkageSource = () => {
         />
       </div>
       <div class="bottom">
-        <div v-if="queryData.runStatus != 0" class="running-status">
+        <div v-if="queryData.runStatus != 1" class="running-status">
           <span style="height: 14px; font-size: 14px; margin-right: 5px">
-            <el-icon v-if="(queryData.runStatus = 2)" color="#67C23A">
+            <el-icon v-if="queryData.runStatus == 0" color="#67C23A">
               <SuccessFilled />
             </el-icon>
+            <el-icon v-if="queryData.runStatus == 2" color="#F56C6C">
+              <CircleCloseFilled />
+            </el-icon>
           </span>
-          <span style="height: 14px">运行490：成功 (4.9) s，运行时间：2024-04-09 17:14:28</span>
+          <span style="height: 14px"
+            >运行{{ queryData.queryId }}：{{ queryData.runStatus == 0 ? '成功' : '失败' }} ({{
+              queryData.runDuration
+            }}) s，运行时间：{{ queryData.runStartTime }}</span
+          >
         </div>
         <div class="result-area">
           <el-tabs type="border-card">
             <el-tab-pane class="running-result" label="运行结果">
-              <el-tabs stretch tab-position="left">
-                <el-tab-pane class="running_info" label="运行信息">
-                  <p>开始时间：2024-04-09 17:14:28</p>
-                  <p>运行时长：47.2s</p>
-                  <p>执行引擎：Hive</p>
-                  <p>执行结果：成功</p>
+              <el-tabs v-model="curPane" stretch tab-position="left">
+                <el-tab-pane class="running_info" label="运行信息" name="运行信息">
+                  <p>开始时间：{{ queryData.runStartTime }}</p>
+                  <p>运行时长：{{ queryData.runDuration }}</p>
+                  <p>执行引擎：{{ queryData.runEngine }}</p>
+                  <p>执行结果：{{ queryData.runStatus === 0 ? '成功' : '失败' }}</p>
                 </el-tab-pane>
-                <el-tab-pane class="running_sql" label="SQL">
+                <el-tab-pane class="running_sql" label="SQL" name="SQL">
                   <VAceEditor
                     ref="viewEditor"
-                    v-model:value="queryData.sql"
+                    v-model:value="prevRunSql"
                     :options="{
                       readOnly: true,
                       showPrintMargin: false,
@@ -378,40 +449,61 @@ const linkageSource = () => {
                     theme="sqlserver"
                   />
                 </el-tab-pane>
-                <el-tab-pane class="running_log" label="日志">日志</el-tab-pane>
-                <el-tab-pane class="result_info" label="预览结果">
+                <el-tab-pane class="running_log" label="日志" name="日志">
+                  <el-scrollbar max-height="270">
+                    <el-text
+                      v-for="(message, index) in curRunLog"
+                      :key="index"
+                      type="info"
+                      style="margin-bottom: 10px"
+                    >
+                      {{ message }}
+                    </el-text>
+                  </el-scrollbar>
+                </el-tab-pane>
+                <el-tab-pane class="result_info" label="预览结果" name="预览结果">
                   <div style="line-height: 20px">
                     <el-button class="operate" link type="primary" @click="copyResult">
                       复制结果
                     </el-button>
                   </div>
                   <el-table
-                    :data="tableData"
+                    :data="curRunResult?.data"
                     max-height="200"
+                    show-overflow-tooltip
                     size="small"
                     stripe
                     style="width: 100%"
                   >
                     <el-table-column :index="1" fixed label="#" type="index" width="50" />
-                    <el-table-column label="Date" prop="date" sortable width="100" />
-                    <el-table-column label="Name" prop="name" sortable width="100" />
-                    <el-table-column label="Address" prop="address" sortable />
+                    <el-table-column
+                      v-for="(item, index) in curRunResult?.columns"
+                      :key="index"
+                      :label="item"
+                      :prop="item"
+                    />
                   </el-table>
                 </el-tab-pane>
               </el-tabs>
             </el-tab-pane>
             <el-tab-pane class="running-history" label="运行历史">
               <el-table
-                :data="tableData"
-                :show-header="false"
+                :data="historyQuery"
                 max-height="200"
+                show-overflow-tooltip
                 size="small"
                 stripe
                 style="width: 100%"
               >
-                <el-table-column label="Date" prop="date" sortable width="100" />
-                <el-table-column label="Name" prop="name" sortable width="100" />
-                <el-table-column label="Address" prop="address" sortable />
+                <el-table-column label="id" prop="queryId" sortable width="100" />
+                <el-table-column label="runStatus" prop="runStatus" sortable width="100">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.runStatus === 0 ? 'success' : 'danger'" size="small">
+                      {{ scope.row.runStatus === 0 ? '成功' : '失败' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="sql" prop="querySql" sortable />
                 <el-table-column fixed="right" label="选项" width="200">
                   <template #default="scope">
                     <el-button link size="small" type="primary" @click.prevent="copySQL(scope.row)">
@@ -484,12 +576,12 @@ const linkageSource = () => {
         </el-select>
         <!-- 数据表名称 -->
         <el-input
-          style="margin-bottom: 10px; width: 100%"
           v-model="curMenuTable"
           :prefix-icon="Search"
           placeholder="数据表名称"
-          @input="getSourceTablesByName"
+          style="margin-bottom: 10px; width: 100%"
           @blur="getSourceTablesByName(curMenuTable)"
+          @input="getSourceTablesByName"
         />
         <!-- 数据表展示 -->
         <el-table

@@ -71,3 +71,6 @@ export const reqSourceTablesByName = (sourceId: number, databaseName: string, ta
     API.GET_SOURCE_TABLES_BY_NAME_URL +
       `${sourceId}?databaseName=${databaseName}&tableName=${tableName}`
   )
+
+export const reqSourceInfoById = (sourceId: number) =>
+  request.get<any, SourceInfoResponse>(API.GET_SOURCE_INFO_URL + `${sourceId}`)
