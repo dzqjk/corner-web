@@ -6,7 +6,7 @@ import { CircleCloseFilled, Loading, Refresh, Search, SuccessFilled } from '@ele
 // 引入sql-formatter
 import { formatDialect, hive } from 'sql-formatter'
 import { ElMessage } from 'element-plus'
-import { reqLastQuery, reqQueryInfo, reqQueryInfoList, reqRunQuery } from '@/api/analysis/index'
+import { reqLastQuery, reqQueryInfo, reqQueryPageInfoList, reqRunQuery } from '@/api/analysis/index'
 
 import { onMounted, reactive, ref, watch } from 'vue'
 import {
@@ -16,9 +16,13 @@ import {
   reqSourceType
 } from '@/api/source'
 import type { SourceInfoResponse } from '@/api/source/type'
-import type { QueryInfo, QueryInfoList } from '@/api/analysis/type'
+import type { QueryInfo } from '@/api/analysis/type'
 
 let sourceTypeAndInfo = ref<any>()
+
+// 存储分页信息
+let pageNo = ref<number>(1)
+let pageSize = ref<number>(15)
 
 let curMenuSource = ref<number>(1)
 let curMenuDatabase = ref<string>('corner')
@@ -30,6 +34,8 @@ let curRunResult = ref<any>()
 let prevRunSql = ref<string>('')
 let curPane = ref<string>('运行信息')
 let curRunLog = ref<string[]>([])
+let curRunEngine = ref<string>('spark')
+let curRunStatus = ref<number>(-1)
 
 // 接收提交查询是所需的参数
 let queryData = reactive<QueryInfo>({
@@ -42,9 +48,9 @@ let queryData = reactive<QueryInfo>({
   runLog: '',
   runDuration: 0,
   runStartTime: '',
-  runStatus: 1 // 运行状态：0运行成功 1运行中 2运行失败
+  runStatus: -1 // 运行状态：0运行成功 1运行中 2运行失败
 })
-let historyQuery = ref<QueryInfoList>()
+let historyQueryPageInfo = ref<any>()
 
 let viewEditor = ref<any>()
 let queryEditor = ref<any>()
@@ -101,6 +107,8 @@ const format_options = reactive<any>({
 
 // 提交查询
 const runQuery = async () => {
+  // 更新执行引擎
+  queryData.runEngine = curRunEngine.value
   const result = await reqRunQuery(queryData)
   if (result.code === 200) {
     ElMessage({
@@ -110,22 +118,31 @@ const runQuery = async () => {
       showClose: true,
       center: true
     })
+    console.log('result.data = ' + JSON.stringify(result.data))
+    // 更新当前展示的sql
+    prevRunSql.value = queryData.querySql
+    // 更新当前运行状态
+    curRunStatus.value = 1
     // 成功之后每隔1秒获取一次当前查询的信息 queryInfoResponse
     let queryInfoResponse: any = {}
     let queryInfoByUUID: any = {}
-    const webSocket = new WebSocket(`ws://hadoop-bishe:8085/ws/log/${result.data}`)
+    const webSocket = new WebSocket(`ws://hadoop-bishe:8085/ws/log/${result.data.uuid}`)
     // 跳转到日志界面，根据websoket连接获取服务器发送的日志
     curPane.value = '日志'
+    // 先重置日志
+    curRunLog.value = []
     webSocket.onmessage = (event) => {
       curRunLog.value.push(event.data)
     }
     const timer = setInterval(async () => {
-      queryInfoResponse = await reqQueryInfo(result.data)
-      // 将返回的数据赋值给queryData
+      queryInfoResponse = await reqQueryInfo(result.data.uuid)
+      // 将返回的数据赋值给临时变量
       Object.assign(queryInfoByUUID, queryInfoResponse.data)
-      console.log('queryInfoByUUID = ' + JSON.stringify(queryInfoByUUID))
       if (queryInfoByUUID.runStatus == 2 || queryInfoByUUID.runStatus == 0) {
+        // 清除定时器
         clearInterval(timer)
+        // 更新当前运行状态
+        curRunStatus.value = queryInfoByUUID.runStatus
         // 展示运行信息页面
         curPane.value = '运行信息'
         // 将返回的数据赋值给queryData
@@ -181,7 +198,7 @@ const copyResult = () => {
 // 点击复制语句
 const copySQL = (row: any) => {
   navigator.clipboard
-    .writeText(row.address) // 将数据写入剪贴板
+    .writeText(row.querySql) // 将数据写入剪贴板
     .then(() => {
       // 成功复制到剪贴板时的反馈
       ElMessage({
@@ -224,21 +241,64 @@ watch(
   }
 )
 
+// 处理数据源切换
+const handleChange = (value: any) => {
+  curMenuSource.value = value[value.length - 1]
+  queryData.sourceId = value[value.length - 1]
+}
+
+watch(
+  () => queryData.sourceId,
+  async () => {
+    // 判断切换后的数据源类型动态更新查询的引擎
+    const result: SourceInfoResponse = await reqSourceInfoById(curMenuSource.value)
+    var sourceInfo = result.data
+    if (sourceInfo.sourceType.typeName.toLowerCase() == 'hive') {
+      curRunEngine.value = 'spark'
+    } else if (sourceInfo.sourceType.typeName.toLowerCase() == 'mysql') {
+      curRunEngine.value = 'jdbc'
+    }
+  }
+)
+
 // 获取最后一次执行的任务信息
 const getLastRunQuery = async () => {
   const result = await reqLastQuery()
   if (result.code == 200) {
     Object.assign(queryData, result.data)
-    prevRunSql.value = result.data.querySql
+    // 更新需要展示的sql
+    prevRunSql.value = queryData.querySql
+    // 更新当前运行状态
+    curRunStatus.value = queryData.runStatus
+    // 获取最后一次执行的任务日志
+    getLastRunLog()
+  }
+}
+
+const getLastRunLog = () => {
+  // 先重置日志
+  curRunLog.value = []
+  var strings = queryData.runLog.split('/')
+  const fileName = strings[strings.length - 1]
+  // 后端传递完日志会自动关闭当前的websocket连接
+  const webSocket = new WebSocket(`ws://hadoop-bishe:8085/ws/logFile/${fileName}`)
+  webSocket.onmessage = (event) => {
+    curRunLog.value.push(event.data)
   }
 }
 
 // 获取历史执行的任务信息
 const getHistoryRunQuery = async () => {
-  const result = await reqQueryInfoList()
+  const result = await reqQueryPageInfoList(pageNo.value, pageSize.value)
   if (result.code == 200) {
-    historyQuery.value = result.data
+    historyQueryPageInfo.value = result.data
   }
+}
+
+// 分页栏点击回调
+const paginationChange = () => {
+  // 重新获取数据
+  getHistoryRunQuery()
 }
 
 // 获取数据源信息
@@ -285,14 +345,6 @@ const getSourceTablesByName = async (key: string) => {
 // 点击联动切换数据源
 const linkageSource = async () => {
   queryData.sourceId = curMenuSource.value
-  // 判断切换后的数据源类型动态更新查询的引擎
-  const result: SourceInfoResponse = await reqSourceInfoById(curMenuSource.value)
-  var sourceInfo = result.data
-  if (sourceInfo.sourceType.typeName.toLowerCase() == 'hive') {
-    queryData.runEngine = 'spark'
-  } else if (sourceInfo.sourceType.typeName.toLowerCase() == 'mysql') {
-    queryData.runEngine = 'jdbc'
-  }
 }
 </script>
 
@@ -322,7 +374,7 @@ const linkageSource = async () => {
         <div class="menu">
           <el-row>
             <el-col :span="18" class="icon-group">
-              <el-tooltip v-if="queryData.runStatus != 1" content="执行SQL" placement="bottom">
+              <el-tooltip v-if="curRunStatus != 1" content="执行SQL" placement="bottom">
                 <svg
                   height="14"
                   p-id="3528"
@@ -337,7 +389,7 @@ const linkageSource = async () => {
                   <path d="M912 512l-800 448V64z" fill="#0590DF" p-id="3529"></path>
                 </svg>
               </el-tooltip>
-              <el-tooltip v-if="queryData.runStatus == 1" content="正在执行" placement="bottom">
+              <el-tooltip v-if="curRunStatus == 1" content="正在执行" placement="bottom">
                 <el-icon class="is-loading my-icon" style="cursor: auto">
                   <Loading />
                 </el-icon>
@@ -389,6 +441,7 @@ const linkageSource = async () => {
                   :show-all-levels="false"
                   clearable
                   size="small"
+                  @change="handleChange"
                 />
               </el-form-item>
             </el-col>
@@ -406,7 +459,7 @@ const linkageSource = async () => {
         />
       </div>
       <div class="bottom">
-        <div v-if="queryData.runStatus != 1" class="running-status">
+        <div v-if="curRunStatus != -1 && curRunStatus != 1" class="running-status">
           <span style="height: 14px; font-size: 14px; margin-right: 5px">
             <el-icon v-if="queryData.runStatus == 0" color="#67C23A">
               <SuccessFilled />
@@ -424,7 +477,7 @@ const linkageSource = async () => {
         <div class="result-area">
           <el-tabs type="border-card">
             <el-tab-pane class="running-result" label="运行结果">
-              <el-tabs v-model="curPane" stretch tab-position="left">
+              <el-tabs v-model="curPane" stretch tab-position="left" v-if="curRunStatus != -1">
                 <el-tab-pane class="running_info" label="运行信息" name="运行信息">
                   <p>开始时间：{{ queryData.runStartTime }}</p>
                   <p>运行时长：{{ queryData.runDuration }}</p>
@@ -450,15 +503,17 @@ const linkageSource = async () => {
                   />
                 </el-tab-pane>
                 <el-tab-pane class="running_log" label="日志" name="日志">
-                  <el-scrollbar max-height="270">
-                    <el-text
+                  <el-scrollbar max-height="240">
+                    <el-row
                       v-for="(message, index) in curRunLog"
                       :key="index"
-                      type="info"
                       style="margin-bottom: 10px"
+                      type="info"
                     >
-                      {{ message }}
-                    </el-text>
+                      <el-text style="text-align: left">
+                        {{ message }}
+                      </el-text>
+                    </el-row>
                   </el-scrollbar>
                 </el-tab-pane>
                 <el-tab-pane class="result_info" label="预览结果" name="预览结果">
@@ -469,7 +524,7 @@ const linkageSource = async () => {
                   </div>
                   <el-table
                     :data="curRunResult?.data"
-                    max-height="200"
+                    max-height="240"
                     show-overflow-tooltip
                     size="small"
                     stripe
@@ -485,34 +540,60 @@ const linkageSource = async () => {
                   </el-table>
                 </el-tab-pane>
               </el-tabs>
+              <el-empty
+                style="height: 240px"
+                description="当前没有查询记录"
+                v-if="curRunStatus == -1"
+              />
             </el-tab-pane>
             <el-tab-pane class="running-history" label="运行历史">
               <el-table
-                :data="historyQuery"
+                :data="historyQueryPageInfo?.list"
                 max-height="200"
                 show-overflow-tooltip
                 size="small"
                 stripe
                 style="width: 100%"
               >
-                <el-table-column label="id" prop="queryId" sortable width="100" />
-                <el-table-column label="runStatus" prop="runStatus" sortable width="100">
+                <el-table-column label="查询ID" prop="queryId" sortable width="100" />
+                <el-table-column label="运行结果" prop="runStatus" sortable width="100">
                   <template #default="scope">
                     <el-tag :type="scope.row.runStatus === 0 ? 'success' : 'danger'" size="small">
                       {{ scope.row.runStatus === 0 ? '成功' : '失败' }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="sql" prop="querySql" sortable />
+                <el-table-column label="查询SQL" prop="querySql" sortable />
                 <el-table-column fixed="right" label="选项" width="200">
                   <template #default="scope">
                     <el-button link size="small" type="primary" @click.prevent="copySQL(scope.row)">
                       复制语句
                     </el-button>
-                    <el-button link size="small" type="primary"> 查看日志</el-button>
+                    <el-link
+                      :href="scope.row.runLog"
+                      :underline="false"
+                      size="small"
+                      style="font-size: 12px"
+                      target="_blank"
+                      type="primary"
+                    >
+                      下载日志
+                    </el-link>
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="pagination">
+                <el-pagination
+                  v-model:current-page="pageNo"
+                  v-model:page-size="pageSize"
+                  :page-sizes="[15, 30, 50]"
+                  :small="true"
+                  :total="historyQueryPageInfo?.total"
+                  background
+                  layout="total,prev, pager, next, sizes,jumper"
+                  @change="paginationChange"
+                />
+              </div>
             </el-tab-pane>
           </el-tabs>
         </div>
@@ -736,6 +817,12 @@ const linkageSource = async () => {
 
         .running-history {
           min-height: 240px;
+
+          .pagination {
+            display: flex;
+            justify-content: right;
+            margin-top: 20px;
+          }
         }
       }
     }
